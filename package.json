@@ -64,6 +64,7 @@
   },
   "scripts": {
     "compile": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat compile",
+    "test": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat test",
     "clean": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat clean",
     "lint:sol": "solhint --config ./.solhint.json --max-warnings 0 \"contracts/**/*.sol\"",
     "typechain": "cross-env TS_NODE_TRANSPILE_ONLY=true hardhat typechain",

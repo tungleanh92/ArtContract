@@ -31,3 +31,25 @@ export const getSignature = (address: string, amount: string): string => {
   return result.signature;
 };
 
+// fake data with 5 token rewards
+export const fakeWithdrawData = (
+  address: string,
+): { user: string; amount: string; } => {
+  const fakeAmount = Web3.utils.toWei("5");
+  return {
+    user: address,
+    amount: fakeAmount,
+  };
+};
+
+// fake data with 1 token rewards
+export const fakeWithdrawData02 = (
+  address: string,
+): { user: string; amount: string } => {
+  const fakeAmount = Web3.utils.toWei("1");
+  return {
+    user: address,
+    amount: fakeAmount,
+  };
+};
+

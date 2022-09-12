@@ -23,11 +23,11 @@ const { toWei } = web3.utils;
 export const fixture: Fixture<IFixture | any> = async ([wallet], _) => {
   // deploy tokens
   const token0 = (await deployContract(wallet as any, ERC20, [
-    toWei("100000000"),
+    toWei("100000000000000"),
   ])) as unknown as IERC20;
 
   const token1 = (await deployContract(wallet as any, ERC20, [
-    toWei("100000000"),
+    toWei("100000000000000"),
   ])) as unknown as IERC20;
 
   const fixedToken = (await deployContract(
@@ -40,8 +40,8 @@ export const fixture: Fixture<IFixture | any> = async ([wallet], _) => {
     MintableTokenJSON,
   )) as unknown as MintableToken;
 
-  await fixedToken.initialize("Fixed Token", "FXT", toWei("1000000"));
-  await mintableToken.initialize("Mintable Token", "MAT", toWei("1000000"));
+  await fixedToken.initialize("Fixed Token", "FXT", toWei("100000000000000"));
+  await mintableToken.initialize("Mintable Token", "MAT", toWei("100000000000000"));
 
   const distributeToken = (await deployContract(wallet as any, TomiTokenJSON, [
     wallet.address,
