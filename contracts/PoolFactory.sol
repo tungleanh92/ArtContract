@@ -14,7 +14,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
     uint256 private APR_;
     uint256 private startTimeJoin_;
     uint256 private endTimeJoin_;
-    uint256 private cap_;
     uint256 private minInvestment_;
     uint256 private maxInvestment_;
     uint256 private lockDuration_;
@@ -30,7 +29,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
             uint256 APR,
             uint256 startTimeJoin,
             uint256 endTimeJoin,
-            uint256 cap,
             uint256 minInvestment,
             uint256 maxInvestment,
             uint256 lockDuration,
@@ -42,7 +40,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
                 APR_,
                 startTimeJoin_,
                 endTimeJoin_,
-                cap_,
                 minInvestment_,
                 maxInvestment_,
                 lockDuration_,
@@ -63,7 +60,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
         uint256 _APR,
         uint256 _startTimeJoin,
         uint256 _endTimeJoin,
-        uint256 _cap,
         uint256 _minInvestment,
         uint256 _maxInvestment,
         uint256 _lockDuration,
@@ -80,7 +76,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
             _APR,
             _startTimeJoin,
             _endTimeJoin,
-            _cap,
             _minInvestment,
             _maxInvestment,
             _lockDuration,
@@ -96,7 +91,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
         uint256 _APR,
         uint256 _startTimeJoin,
         uint256 _endTimeJoin,
-        uint256 _cap,
         uint256 _minInvestment,
         uint256 _maxInvestment,
         uint256 _lockDuration,
@@ -108,7 +102,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
         APR_ = _APR;
         startTimeJoin_ = _startTimeJoin;
         endTimeJoin_ = _endTimeJoin;
-        cap_ = _cap;
         minInvestment_ = _minInvestment;
         maxInvestment_ = _maxInvestment;
         lockDuration_ = _lockDuration;
@@ -122,7 +115,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
         delete APR_;
         delete startTimeJoin_;
         delete endTimeJoin_;
-        delete cap_;
         delete minInvestment_;
         delete maxInvestment_;
         delete lockDuration_;
