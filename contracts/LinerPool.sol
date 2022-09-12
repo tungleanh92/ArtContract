@@ -31,17 +31,17 @@ contract LinearPool is
     // The reward distribution address
     address public linearRewardDistributor;
     // Max tokens an user can stake into this
-    uint256 maxInvestment;
+    uint256 public maxInvestment;
     // Min tokens an user must stake into this
-    uint256 minInvestment;
+    uint256 public minInvestment;
     // APR of this pool
-    uint256 APR;
+    uint256 public APR;
     // Lock time to claim reward after staked
-    uint256 lockDuration;
+    uint256 public lockDuration;
     // Can stake time
-    uint256 startJoinTime;
+    uint256 public startJoinTime;
     // End of stake time
-    uint256 endJoinTime;
+    uint256 public endJoinTime;
 
     // Info of each user that stakes in pool
     mapping(address => LinearStakingData) public linearStakingData;

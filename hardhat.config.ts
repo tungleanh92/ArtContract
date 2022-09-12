@@ -9,7 +9,7 @@ import "hardhat-gas-reporter";
 import { HardhatUserConfig } from "hardhat/config";
 import { NetworkUserConfig } from "hardhat/types";
 import { join, resolve } from "path";
-require("hardhat-contract-sizer");
+import 'solidity-coverage'
 
 dotenvConfig({ path: resolve(__dirname, "./.env") });
 
