@@ -7,7 +7,23 @@ interface IPoolFactory {
         address indexed LinerPoolAddress
     );
 
-    function linerParameters()
+    event ChangeLinerImpl(
+        address LinerImplAddress
+    );
+
+    struct LinerParams {
+        address[] stakeToken;
+        address[] saleToken;
+        uint256  APR;
+        uint256  startTimeJoin;
+        uint256  endTimeJoin;
+        uint256  minInvestment;
+        uint256  maxInvestment;
+        uint256  lockDuration;
+        address  rewardDistributor;
+    }
+
+    function getLinerParameters()
         external
         returns (
             address[] memory stakeToken,

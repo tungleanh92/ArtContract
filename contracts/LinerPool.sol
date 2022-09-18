@@ -3,27 +3,24 @@ pragma solidity 0.8.4;
 
 import "./interfaces/IPoolFactory.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/IAccessControl.sol";
-import "hardhat/console.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol";
 
 
 contract LinearPool is
-    ReentrancyGuard,
-    Pausable
+    ReentrancyGuardUpgradeable,
+    PausableUpgradeable
 {
     using SafeERC20 for IERC20;
 
     bytes32 public constant MOD = keccak256("MOD");
     bytes32 public constant ADMIN = keccak256("ADMIN");
-    uint32 private constant ONE_YEAR_IN_SECONDS = 365 days;
-
-    uint8 public MAX_NUMBER_TOKEN = 5;
+    uint256 private constant ONE_YEAR_IN_SECONDS = 365 days;
 
     // Pool creator
-    address public immutable factory;
+    address public factory;
     // The accepted token
     IERC20[] public linearAcceptedToken;
     // Reward token
@@ -62,10 +59,11 @@ contract LinearPool is
     }
 
     event AdminRecoverFund(address token, address to, uint256 amount);
+    event RewardDisTributor(address reward);
 
     modifier isMod() {
         require(
-            IAccessControl(factory).hasRole(MOD, msg.sender),
+            IAccessControlUpgradeable(factory).hasRole(MOD, msg.sender),
             "LinearStakingPool: forbidden"
         );
         _;
@@ -73,7 +71,7 @@ contract LinearPool is
 
     modifier isAdmin() {
         require(
-            IAccessControl(factory).hasRole(ADMIN, msg.sender),
+            IAccessControlUpgradeable(factory).hasRole(ADMIN, msg.sender),
             "LinearStakingPool: forbidden"
         );
         _;
@@ -82,7 +80,13 @@ contract LinearPool is
     /**
      * @notice Initialize the contract, get called in the first time deploy
      */
-    constructor() {
+    function initialize() 
+    external
+    initializer {
+
+        __Pausable_init();
+        __ReentrancyGuard_init();
+
         (
             address[] memory _stakeToken,
             address[] memory _saleToken,
@@ -93,14 +97,11 @@ contract LinearPool is
             uint256 _maxInvestment,
             uint256 _lockDuration,
             address _rewardDistributor
-        ) = IPoolFactory(msg.sender).linerParameters();
+        ) = IPoolFactory(msg.sender).getLinerParameters();
 
 
         uint256 _rewardLength = _stakeToken.length;
-        require(
-            _rewardLength <= MAX_NUMBER_TOKEN,
-            "LinearStakingPool: inffuse token numbers"
-        );
+        
         require(
             _endTimeJoin >= block.timestamp && _endTimeJoin > _startTimeJoin,
             "LinearStakingPool: invalid join time"
@@ -116,7 +117,7 @@ contract LinearPool is
             "LinearStakingPool: invalid token length"
         );
 
-        for (uint8 i = 0; i < _rewardLength; i++) {
+        for (uint256 i = 0; i < _rewardLength; i++) {
             require(
                 _saleToken[i] != address(0) && _stakeToken[i] != address(0),
                 "LinearStakingPool: invalid token address"
@@ -171,7 +172,7 @@ contract LinearPool is
      */
     function linearSetRewardDistributor(address _linearRewardDistributor)
         external
-        isAdmin
+        isMod
     {
         require(
             _linearRewardDistributor != address(0),
@@ -181,19 +182,15 @@ contract LinearPool is
     }
     
 
-    /**
-     * @notice Set max numbers the rewards Can only be called by the owner.
-     * @param _num the reward distributor
-     */
-    function linearSetMaxRewardToken(uint8 _num)
+    function linearSetPool(uint256 _endJoinTime)
         external
-        isAdmin
+        isMod
     {
         require(
-            _num <= 5,
-            "LinearStakingPool: invalid reward token length"
+            _endJoinTime >= startJoinTime,
+            "LinearStakingPool: invali time"
         );
-        MAX_NUMBER_TOKEN = _num;
+        endJoinTime = _endJoinTime;
     }
 
     /**
@@ -209,7 +206,7 @@ contract LinearPool is
 
         _linearDeposit(_amount, account);
 
-        for(uint8 i=0; i<_amount.length; i++) {
+        for(uint256 i=0; i<_amount.length; i++) {
             linearAcceptedToken[i].safeTransferFrom(account, address(this), _amount[i]);
         }
         emit LinearDeposit(account, _amount);
@@ -227,7 +224,7 @@ contract LinearPool is
     {
         _linearDeposit(_amount, _receiver);
 
-        for(uint8 i=0; i<_amount.length; i++) {
+        for(uint256 i=0; i<_amount.length; i++) {
             linearAcceptedToken[i].safeTransferFrom(msg.sender, address(this), _amount[i]);
         }
         emit LinearDeposit(_receiver, _amount);
@@ -259,14 +256,14 @@ contract LinearPool is
         uint256[] memory _rewards = new uint256[](stakingData.balance.length);
         require(
             linearRewardDistributor != address(0),
-            "LinearStakingPool: invalid reward distributor"
+            "LinearStakingPool: invalid distributor"
         );
 
-        for(uint8 i=0; i<stakingData.balance.length; i++) {
+        for(uint256 i=0; i<stakingData.balance.length; i++) {
 
             require(
                 stakingData.balance[i] >= _amount[i],
-                "LinearStakingPool: invalid withdraw amount"
+                "LinearStakingPool: invalid amount"
             );
 
             if (stakingData.reward[i] > 0) {
@@ -305,10 +302,10 @@ contract LinearPool is
         uint256[] memory _rewards = new uint256[](stakingData.balance.length);
         require(
             linearRewardDistributor != address(0),
-            "LinearStakingPool: invalid reward distributor"
+            "LinearStakingPool: invalid distributor"
         );
 
-        for(uint8 i=0; i<stakingData.balance.length; i++) {
+        for(uint256 i=0; i<stakingData.balance.length; i++) {
         
             if (stakingData.reward[i] > 0) {
                 uint256 reward = stakingData.reward[i];
@@ -355,7 +352,7 @@ contract LinearPool is
         if (stakedTimeInSeconds > lockDuration)
             stakedTimeInSeconds = lockDuration;
         rewards = new uint256[](stakingData.balance.length);
-        for (uint8 i = 0; i < stakingData.balance.length; i++) {
+        for (uint256 i = 0; i < stakingData.balance.length; i++) {
             uint256 pendingReward = ((stakingData.balance[i] *
                 stakedTimeInSeconds *
                 APR) / ONE_YEAR_IN_SECONDS) / 1e20;
@@ -370,19 +367,6 @@ contract LinearPool is
      */
     function linearBalanceOf(address _account) external view returns (uint256[] memory) {
         return linearStakingData[_account].balance;
-    }
-
-    /**
-     * @notice Gets number of deposited tokens in a pool
-     * @param _account address of a user
-     * @return total token deposited in a pool by a user
-     */
-    function linearUserStakingData(address _account)
-        external
-        view
-        returns (LinearStakingData memory)
-    {
-        return linearStakingData[_account];
     }
 
     /**
@@ -402,7 +386,7 @@ contract LinearPool is
     function linearEmergencyWithdraw() external nonReentrant whenNotPaused {
         require(
             linearAllowEmergencyWithdraw,
-            "LinearStakingPool: emergency withdrawal is not allowed yet"
+            "LinearStakingPool: emergency not allowed"
         );
 
         address account = msg.sender;
@@ -419,7 +403,7 @@ contract LinearPool is
         stakingData.reward = new uint256[](stakingData.balance.length);
         stakingData.updatedTime = block.timestamp;
 
-        for(uint8 i=0; i< amount.length; i++) {
+        for(uint256 i=0; i< amount.length; i++) {
             linearAcceptedToken[i].safeTransfer(account, amount[i]);
         }
         emit LinearEmergencyWithdraw(account, amount);
@@ -437,17 +421,17 @@ contract LinearPool is
 
         require(
             block.timestamp >= startJoinTime,
-            "LinearStakingPool: pool is not started yet"
+            "LinearStakingPool: not started yet"
         );
 
         require(
             block.timestamp <= endJoinTime,
-            "LinearStakingPool: pool is already closed"
+            "LinearStakingPool: already closed"
         );
 
         _linearHarvest(account);
 
-        for(uint8 i=0; i<_amount.length; i++){
+        for(uint256 i=0; i<_amount.length; i++){
             stakingData.balance[i] += _amount[i];
         }
 

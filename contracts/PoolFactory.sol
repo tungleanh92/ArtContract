@@ -1,57 +1,61 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.4;
+pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./interfaces/IPoolFactory.sol";
+import "./libraries/Clones.sol";
 import "./LinerPool.sol";
 
 contract PoolFactory is IPoolFactory, AccessControl {
     bytes32 public constant MOD = keccak256("MOD");
     bytes32 public constant ADMIN = keccak256("ADMIN");
+    
+    LinearPool public linerImpl; 
 
-    address[] private stakeToken_;
-    address[] private saleToken_;
-    uint256 private APR_;
-    uint256 private startTimeJoin_;
-    uint256 private endTimeJoin_;
-    uint256 private minInvestment_;
-    uint256 private maxInvestment_;
-    uint256 private lockDuration_;
-    address private rewardDistributor_;
+    LinerParams public linerParameters;
 
-    function linerParameters()
-        external
-        view
-        override
-        returns (
-            address[] memory stakeToken,
-            address[] memory saleToken,
-            uint256 APR,
-            uint256 startTimeJoin,
-            uint256 endTimeJoin,
-            uint256 minInvestment,
-            uint256 maxInvestment,
-            uint256 lockDuration,
-            address rewardDistributor
-        ) {
-            return (
-                stakeToken_,
-                saleToken_,
-                APR_,
-                startTimeJoin_,
-                endTimeJoin_,
-                minInvestment_,
-                maxInvestment_,
-                lockDuration_,
-                rewardDistributor_
-            );
-        }
+    function getLinerParameters() 
+            external 
+            view 
+            override 
+            returns (
+                address[] memory stakeToken,
+                address[] memory saleToken,
+                uint256 APR,
+                uint256 startTimeJoin,
+                uint256 endTimeJoin,
+                uint256 minInvestment,
+                uint256 maxInvestment,
+                uint256 lockDuration,
+                address rewardDistributor
+            ) {
+                return (
+                    linerParameters.stakeToken,
+                    linerParameters.saleToken,
+                    linerParameters.APR,
+                    linerParameters.startTimeJoin,
+                    linerParameters.endTimeJoin,
+                    linerParameters.minInvestment,
+                    linerParameters.maxInvestment,
+                    linerParameters.lockDuration,
+                    linerParameters.rewardDistributor
+                );
+            }
 
-    constructor() {
+    constructor( LinearPool _linerImpl ) {
         _setRoleAdmin(MOD, ADMIN);
         _setRoleAdmin(ADMIN, ADMIN);
         _setupRole(ADMIN, msg.sender);
         _setupRole(MOD, msg.sender);
+
+        linerImpl = _linerImpl;
+    }
+
+    function changeLinerImpl( LinearPool _linerImpl) external {
+        require(hasRole(ADMIN, msg.sender), "PoolFactory: require ADMIN role");
+        linerImpl = _linerImpl;
+
+        emit ChangeLinerImpl( address(_linerImpl));
     }
 
     function createLinerPool(
@@ -65,12 +69,9 @@ contract PoolFactory is IPoolFactory, AccessControl {
         uint256 _lockDuration,
         address _rewardDistributor
     ) external returns (address poolAddress) {
-        require(
-            hasRole(ADMIN, msg.sender),
-            "PoolFactory: require ADMIN role"
-        );
+        require(hasRole(ADMIN, msg.sender), "PoolFactory: require ADMIN role");
 
-        poolAddress = _deploy(
+        poolAddress = _deployLiner(
             _stakeToken,
             _saleToken,
             _APR,
@@ -85,7 +86,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
         emit LinerPoolCreated(poolAddress);
     }
 
-    function _deploy(
+    function _deployLiner(
         address[] memory _stakeToken,
         address[] memory _saleToken,
         uint256 _APR,
@@ -97,27 +98,22 @@ contract PoolFactory is IPoolFactory, AccessControl {
         address _rewardDistributor
     ) private returns (address poolAddress) {
 
-        stakeToken_ = _stakeToken;
-        saleToken_ = _saleToken;
-        APR_ = _APR;
-        startTimeJoin_ = _startTimeJoin;
-        endTimeJoin_ = _endTimeJoin;
-        minInvestment_ = _minInvestment;
-        maxInvestment_ = _maxInvestment;
-        lockDuration_ = _lockDuration;
-        rewardDistributor_ = _rewardDistributor;
+        linerParameters = LinerParams({
+            stakeToken: _stakeToken,
+            saleToken: _saleToken,
+            APR: _APR,
+            startTimeJoin: _startTimeJoin,
+            endTimeJoin: _endTimeJoin,
+            minInvestment: _minInvestment,
+            maxInvestment: _maxInvestment,
+            lockDuration: _lockDuration,
+            rewardDistributor: _rewardDistributor
+        });
 
+        poolAddress = Clones.clone(address( linerImpl ));
 
-        poolAddress = address(new LinearPool());
+        LinearPool(poolAddress).initialize();
 
-        delete stakeToken_;
-        delete saleToken_;
-        delete APR_;
-        delete startTimeJoin_;
-        delete endTimeJoin_;
-        delete minInvestment_;
-        delete maxInvestment_;
-        delete lockDuration_;
-        delete rewardDistributor_;
+        delete linerParameters;
     }
 }

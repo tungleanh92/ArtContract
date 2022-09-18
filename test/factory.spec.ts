@@ -31,15 +31,10 @@ describe("Pool factory", () => {
 
   beforeEach(async () => {
     loadFixture = waffle.createFixtureLoader(wallets as any);
-    ({ fixedToken, mintableToken } = await loadFixture(fixture));
+    ({ fixedToken, mintableToken, poolFactory } = await loadFixture(fixture));
 
     await mintableToken.transfer(account1.address, toWei("1000"));
     await mintableToken.transfer(account2.address, toWei("1000"));
-    const allocationFactoryDeployer = await ethers.getContractFactory(
-      "PoolFactory",
-    );
-    poolFactory =
-      (await allocationFactoryDeployer.deploy()) as PoolFactory;
   });
 
   it("add new MOD_ROLE", async () => {

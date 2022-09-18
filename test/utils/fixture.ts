@@ -4,16 +4,21 @@ import {
   FixedToken,
   MintableToken,
   TomiToken,
+  PoolFactory,
+  LinearPool,
   IERC20,
 } from "../../typechain";
 import * as TomiTokenJSON from "../../artifacts/contracts/mocks/TomiToken.sol/TomiToken.json";
 import * as FixTokenJSON from "../../artifacts/contracts/mocks/FixedToken.sol/FixedToken.json";
 import * as MintableTokenJSON from "../../artifacts/contracts/mocks/MintableToken.sol/MintableToken.json";
+import * as PoolFactoryJSON from "../../artifacts/contracts/PoolFactory.sol/PoolFactory.json";
+import * as LinerPoolJSON from "../../artifacts/contracts/LinerPool.sol/LinearPool.json";
 import * as ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 interface IFixture {
   token0: IERC20;
   token1: IERC20;
   fixedToken: FixedToken;
+  poolFactory: PoolFactory;
   mintableToken: MintableToken;
   distributeToken: TomiToken;
 }
@@ -40,6 +45,17 @@ export const fixture: Fixture<IFixture | any> = async ([wallet], _) => {
     MintableTokenJSON,
   )) as unknown as MintableToken;
 
+  const linerImpl = await deployContract(
+    wallet as any,
+    LinerPoolJSON,
+  ) as unknown as LinearPool;
+
+  const poolFactory = (await deployContract(
+    wallet as any,
+    PoolFactoryJSON,
+    [linerImpl.address]
+  )) as unknown as PoolFactory;
+
   await fixedToken.initialize("Fixed Token", "FXT", toWei("100000000000000"));
   await mintableToken.initialize("Mintable Token", "MAT", toWei("100000000000000"));
 
@@ -55,5 +71,6 @@ export const fixture: Fixture<IFixture | any> = async ([wallet], _) => {
     distributeToken,
     fixedToken,
     mintableToken,
+    poolFactory,
   };
 };

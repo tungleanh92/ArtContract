@@ -36,18 +36,11 @@ describe("Pool", () => {
 
   beforeEach(async () => {
     loadFixture = waffle.createFixtureLoader(wallets as any);
-    ({ fixedToken, mintableToken } = await loadFixture(fixture));
+    ({ fixedToken, mintableToken, poolFactory } = await loadFixture(fixture));
 
     await mintableToken.transfer(account1.address, toWei("1000"));
     await mintableToken.transfer(account2.address, toWei("1000"));
     await fixedToken.transfer(distributor.address, toWei("10000"));
-
-    const poolFactoryDeployer = await ethers.getContractFactory(
-      "PoolFactory",
-    );
-
-    poolFactory =
-      (await poolFactoryDeployer.deploy()) as PoolFactory;
 
     const poolAddress = await poolFactory.callStatic.createLinerPool(
       [mintableToken.address],
@@ -183,7 +176,7 @@ describe("Pool", () => {
       await expect(
         poolFuture.connect(account1).linearDeposit([toWei("5")])
       ).to.be.revertedWith(
-        "LinearStakingPool: pool is not started yet"
+        "LinearStakingPool: not started yet"
       );
 
       await time.increaseTo(duration.years(1).add(delta.toString()));
@@ -191,7 +184,7 @@ describe("Pool", () => {
       await expect(
         poolFuture.connect(account1).linearDeposit([toWei("5")])
       ).to.be.revertedWith(
-        "LinearStakingPool: pool is already closed"
+        "LinearStakingPool: already closed"
       );
     })
 
@@ -213,7 +206,7 @@ describe("Pool", () => {
       await expect(
         pool.connect(account1).linearEmergencyWithdraw()
       ).to.be.revertedWith(
-        "LinearStakingPool: emergency withdrawal is not allowed yet"
+        "LinearStakingPool: emergency not allowed"
       );
 
       await pool.linearSetAllowEmergencyWithdraw(true);
@@ -282,7 +275,7 @@ describe("Pool", () => {
       await expect(
         poolZero.connect(account1).linearWithdraw([toWei("5")])
       ).to.be.revertedWith(
-        "LinearStakingPool: invalid reward distributor"
+        "LinearStakingPool: invalid distributor"
       );
     });
 
@@ -349,7 +342,7 @@ describe("Pool", () => {
       await expect(
         poolZero.connect(account1).linearClaimReward()
       ).to.be.revertedWith(
-        "LinearStakingPool: invalid reward distributor"
+        "LinearStakingPool: invalid distributor"
       );
     })
   });
@@ -372,30 +365,20 @@ describe("Pool", () => {
       
       await expect(pool.connect(account1).pauseContract()).not.to.be.reverted;
       await expect(pool.connect(account1).unpauseContract()).not.to.be.reverted;
+
     });
 
     it("Set pool status", async () => {
-      
+  
       await expect(
         pool.connect(account1).linearSetRewardDistributor(account2.address)
       ).to.be.revertedWith(
         "LinearStakingPool: forbidden"
       );
 
-      await expect(
-        pool.connect(account1).linearSetMaxRewardToken(6)
-      ).to.be.revertedWith(
-        "LinearStakingPool: forbidden"
-      );
 
-      await poolFactory.grantRole(ADMIN_ROLE, account1.address);
-      await expect(
-        pool.connect(account1).linearSetMaxRewardToken(6)
-      ).to.be.revertedWith(
-        "LinearStakingPool: invalid reward token length"
-      );
+      await poolFactory.grantRole(MOD_ROLE, account1.address);
       await expect(pool.connect(account1).linearSetRewardDistributor(account2.address)).not.to.be.reverted;
-      await expect(pool.connect(account1).linearSetMaxRewardToken(4)).not.to.be.reverted;
     });
 
     it("Admin withdraw", async () => {
