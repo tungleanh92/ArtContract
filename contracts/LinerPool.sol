@@ -11,8 +11,8 @@ import "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol
 
 contract LinearPool is
     ReentrancyGuardUpgradeable,
-    PausableUpgradeable
-{
+    PausableUpgradeable {
+
     using SafeERC20 for IERC20;
 
     bytes32 public constant MOD = keccak256("MOD");
@@ -21,12 +21,10 @@ contract LinearPool is
 
     // Pool creator
     address public factory;
-    // The accepted token
-    IERC20[] public linearAcceptedToken;
-    // Reward token
-    IERC20[] public linearRewardToken;
     // The reward distribution address
     address public linearRewardDistributor;
+    // Max token numbers can stake into this pool
+    uint256 cap;
     // Max tokens an user can stake into this
     uint256 public maxInvestment;
     // Min tokens an user must stake into this
@@ -39,12 +37,20 @@ contract LinearPool is
     uint256 public startJoinTime;
     // End of stake time
     uint256 public endJoinTime;
+    // All token stake
+    uint256[] public totalStaked;
+    // The accepted token
+    IERC20[] public linearAcceptedToken;
+    // Reward token
+    IERC20[] public linearRewardToken;
 
     // Info of each user that stakes in pool
     mapping(address => LinearStakingData) public linearStakingData;
     // Allow emergency withdraw feature
     bool public linearAllowEmergencyWithdraw;
 
+    event LinearStop(uint256 stopAt);
+    event LinearStart(uint256 startAt);
     event LinearDeposit(address indexed account, uint256[] amount);
     event LinearWithdraw(address indexed account, uint256[] amount);
     event LinearRewardsHarvested(address indexed account, uint256[] reward);
@@ -53,9 +59,9 @@ contract LinearPool is
 
     struct LinearStakingData {
         uint256[] balance;
+        uint256[] reward;
         uint256 joinTime;
         uint256 updatedTime;
-        uint256[] reward;
     }
 
     event AdminRecoverFund(address token, address to, uint256 amount);
@@ -91,6 +97,7 @@ contract LinearPool is
             address[] memory _stakeToken,
             address[] memory _saleToken,
             uint256 _APR,
+            uint256 _cap,
             uint256 _startTimeJoin,
             uint256 _endTimeJoin,
             uint256 _minInvestment,
@@ -101,11 +108,6 @@ contract LinearPool is
 
 
         uint256 _rewardLength = _stakeToken.length;
-        
-        require(
-            _endTimeJoin >= block.timestamp && _endTimeJoin > _startTimeJoin,
-            "LinearStakingPool: invalid join time"
-        );
 
         require(
             _maxInvestment >= _minInvestment,
@@ -124,10 +126,12 @@ contract LinearPool is
             );
             linearAcceptedToken.push(IERC20(_stakeToken[i]));
             linearRewardToken.push(IERC20(_saleToken[i]));
+            totalStaked.push(0);
         }
         
         factory = msg.sender;
         APR = _APR;
+        cap = _cap;
         startJoinTime = _startTimeJoin;
         endJoinTime = _endTimeJoin;
         minInvestment = _minInvestment;
@@ -182,15 +186,19 @@ contract LinearPool is
     }
     
 
-    function linearSetPool(uint256 _endJoinTime)
+    function linearSetPool(bool _isStop)
         external
         isMod
     {
-        require(
-            _endJoinTime >= startJoinTime,
-            "LinearStakingPool: invali time"
-        );
-        endJoinTime = _endJoinTime;
+        
+        if(_isStop) {
+            endJoinTime = block.timestamp;
+            emit LinearStop(block.timestamp);
+        }
+        else {
+            endJoinTime = 0;
+            emit LinearStart(block.timestamp);
+        }
     }
 
     /**
@@ -279,6 +287,7 @@ contract LinearPool is
             }
 
             stakingData.balance[i] -= _amount[i];
+            totalStaked[i] -= _amount[i];
             linearAcceptedToken[i].safeTransfer(account, _amount[i]);
         }
 
@@ -338,19 +347,13 @@ contract LinearPool is
             : block.timestamp;
 
         uint256 endTime = block.timestamp;
-        if (
-            lockDuration > 0 &&
-            stakingData.joinTime + lockDuration < block.timestamp
-        ) {
-            endTime = stakingData.joinTime + lockDuration;
-        }
+
+        if (endJoinTime > 0) endTime = endJoinTime;
 
         uint256 stakedTimeInSeconds = endTime > startTime
             ? endTime - startTime
             : 0;
 
-        if (stakedTimeInSeconds > lockDuration)
-            stakedTimeInSeconds = lockDuration;
         rewards = new uint256[](stakingData.balance.length);
         for (uint256 i = 0; i < stakingData.balance.length; i++) {
             uint256 pendingReward = ((stakingData.balance[i] *
@@ -404,6 +407,7 @@ contract LinearPool is
         stakingData.updatedTime = block.timestamp;
 
         for(uint256 i=0; i< amount.length; i++) {
+            totalStaked[i] -= amount[i];
             linearAcceptedToken[i].safeTransfer(account, amount[i]);
         }
         emit LinearEmergencyWithdraw(account, amount);
@@ -425,14 +429,24 @@ contract LinearPool is
         );
 
         require(
-            block.timestamp <= endJoinTime,
+            block.timestamp <= endJoinTime || endJoinTime == 0,
             "LinearStakingPool: already closed"
         );
+
+        if (cap > 0) {
+            for(uint256 i=0; i<linearAcceptedToken.length; i++) {
+                require(
+                    totalStaked[i] + _amount[i] <= cap,
+                    "LinearStakingPool: pool is full"
+                );
+            }
+        }
 
         _linearHarvest(account);
 
         for(uint256 i=0; i<_amount.length; i++){
             stakingData.balance[i] += _amount[i];
+            totalStaked[i] += _amount[i];
         }
 
         stakingData.joinTime = block.timestamp;

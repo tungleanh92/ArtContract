@@ -46,8 +46,8 @@ describe("Pool", () => {
       [mintableToken.address],
       [fixedToken.address],
       toWei("10"),
+      0,
       (await time.latest()).toNumber(),
-      (await time.latest()).toNumber() + duration.years(1).toNumber(),
       toWei("1"),
       toWei("10"),
       duration.hours("1"),
@@ -58,8 +58,8 @@ describe("Pool", () => {
       [mintableToken.address],
       [fixedToken.address],
       toWei("10"),
+      0,
       (await time.latest()).toNumber(),
-      (await time.latest()).toNumber() + duration.years(1).toNumber(),
       toWei("1"),
       toWei("10"),
       duration.hours("1"),
@@ -75,8 +75,8 @@ describe("Pool", () => {
       [mintableToken.address],
       [fixedToken.address],
       toWei("10"),
+      0,
       (await time.latest()).toNumber(),
-      (await time.latest()).toNumber() + 30,
       toWei("1"),
       toWei("10"),
       duration.hours("1"),
@@ -87,8 +87,8 @@ describe("Pool", () => {
       [mintableToken.address],
       [fixedToken.address],
       toWei("10"),
+      0,
       (await time.latest()).toNumber(),
-      (await time.latest()).toNumber() + 30,
       toWei("1"),
       toWei("10"),
       duration.hours("1"),
@@ -99,8 +99,8 @@ describe("Pool", () => {
       [mintableToken.address],
       [fixedToken.address],
       toWei("10"),
+      0,
       (await time.latest()).toNumber() + 3600,
-      (await time.latest()).toNumber() + 6400,
       toWei("1"),
       toWei("10"),
       duration.hours("1"),
@@ -111,8 +111,8 @@ describe("Pool", () => {
       [mintableToken.address],
       [fixedToken.address],
       toWei("10"),
+      0,
       (await time.latest()).toNumber() + 3600,
-      (await time.latest()).toNumber() + 6400,
       toWei("1"),
       toWei("10"),
       duration.hours("1"),
@@ -179,7 +179,8 @@ describe("Pool", () => {
         "LinearStakingPool: not started yet"
       );
 
-      await time.increaseTo(duration.years(1).add(delta.toString()));
+      await time.increaseTo(duration.hours(1).add(delta.toString()));
+      await poolFuture.linearSetPool(true);
 
       await expect(
         poolFuture.connect(account1).linearDeposit([toWei("5")])
@@ -225,7 +226,7 @@ describe("Pool", () => {
     it("withdraw", async () => {
 
       // After 2 hours user 1 withdraw
-      // Reward = 5 wei * 1 * 3600 * 10 / 31536000 = 57077625570776
+      // Reward = 5 wei * 2 * 3600 * 10 / 31536000 = 114155251141552
 
       await time.increaseTo(duration.hours(2).add(delta.toString()));
 
@@ -237,7 +238,7 @@ describe("Pool", () => {
       const acc1Reward = await fixedToken.balanceOf(account1.address);
 
       // After 5 hours user 2 withdraw
-      // Reward = 5 wei * 1 * 3600 * 10 / 31536000 = 57077625570776
+      // Reward = 5 wei * 5 * 3600 * 10 / 31536000 = 285372272957889
 
       await time.increaseTo(duration.hours(5).add(delta.toString()));
 
@@ -247,8 +248,8 @@ describe("Pool", () => {
       expect(acc2Amounts).to.deep.equal([toWei("1")]);
       const acc2Reward = await fixedToken.balanceOf(account2.address);
 
-      expect(acc1Reward).to.equal("57077625570776");
-      expect(acc2Reward).to.equal("57077625570776");
+      expect(acc1Reward).to.equal("114155251141552");
+      expect(acc2Reward).to.equal("285372272957889");
     });
 
     it("withdraw - all revert cases", async () => {
@@ -297,36 +298,56 @@ describe("Pool", () => {
 
     it("Claim rewards", async () => {
       // After 2 hours user 1 claim
-      // Reward = 5 wei * 1 * 3600 * 10 / 31536000 = 57077625570776
+      // Reward = 5 wei * 2 * 3600 * 10 / 31536000 = 114155251141552
 
       await time.increaseTo(duration.hours(2).add(delta.toString()));
 
       await pool.connect(account1).linearClaimReward();
 
       let acc1Amounts = await (await pool.linearBalanceOf(account1.address)).map(e => e.toString());
-
       expect(acc1Amounts).to.deep.equal([toWei("5")]);
       const acc1Reward = await fixedToken.balanceOf(account1.address);
 
-      expect(acc1Reward).to.equal("57077625570776");
+      expect(acc1Reward).to.equal("114155251141552");
 
-      // Reward at this time is: 57077625570776 
+      // Reward at this time is: 114155251141552 
       await pool.connect(account2).linearDeposit([toWei("10")]);
 
       let acc2Amounts = await (await pool.linearBalanceOf(account2.address)).map(e => e.toString());
       expect(acc2Amounts).to.deep.equal([toWei("15")]);
 
       // Wait 1 hours and claim
-      // Rewards: 57077625570776 + 15 wei * 1 * 3600 * 10 / 31536000 = 228310502283104
+      // Rewards: 114155251141552 + 15 wei * 1 * 3601 * 10 / 31536000 = 285483257229832
       await time.increase(duration.hours(1).add(1));
       await pool.connect(account2).linearClaimReward();
-      const acc2Rewards = await balanceOf(
+      let acc2Rewards = await balanceOf(
         deployer,
         account2.address,
         fixedToken.address
       );
 
-      expect(acc2Rewards).to.equal(fromWei('228310502283104'));
+      expect(acc2Rewards).to.equal(fromWei('285483257229832'));
+
+      //Reward of user 2 now is: 0
+      // Wait 1 hour and stop pool
+      await time.increase(duration.hours(1));
+      await pool.linearSetPool(true);
+      // Rewards will stop here: 15 wei * 3601 * 10 / 31536000 + 285483257229832 = 456763698630136
+      // Wait 2 hour and claim
+      await time.increase(duration.hours(2).add(1));
+      await pool.connect(account2).linearClaimReward();
+      
+      acc2Rewards = await balanceOf(
+        deployer,
+        account2.address,
+        fixedToken.address
+      );
+
+      expect(acc2Rewards).to.equal(fromWei('456763698630136'));
+      // Start pool
+      await pool.linearSetPool(false);
+
+
     });
 
     it("Claim rewards - all revert cases", async () => {

@@ -50,7 +50,7 @@ describe("Pool factory", () => {
     ).to.be.equal(true);
   });
 
-  it("create pool", async () => {
+  it("create liner pool", async () => {
     const [, user] = await ethers.getSigners();
     await expect(
       poolFactory
@@ -59,8 +59,8 @@ describe("Pool factory", () => {
           [mintableToken.address],
           [fixedToken.address],
           toWei("10"),
+          0,
           (await time.latest()).toNumber(),
-          (await time.latest()).toNumber() + 30,
           0,
           0,
           "0",
@@ -73,8 +73,8 @@ describe("Pool factory", () => {
         [mintableToken.address],
         [fixedToken.address],
         toWei("10"),
+        0,
         (await time.latest()).toNumber(),
-        (await time.latest()).toNumber() + 30,
         0,
         toWei("10000000"),
         0,
@@ -87,8 +87,8 @@ describe("Pool factory", () => {
         [mintableToken.address],
         [fixedToken.address],
         toWei("10"),
+        0,
         (await time.latest()).toNumber(),
-        (await time.latest()).toNumber() + 30,
         0,
         toWei("10000000"),
         0,
@@ -101,8 +101,8 @@ describe("Pool factory", () => {
         [mintableToken.address],
         [ethers.constants.AddressZero],
         toWei("10"),
+        0,
         (await time.latest()).toNumber(),
-        (await time.latest()).toNumber() + 30,
         0,
         toWei("10000000"),
         0,
@@ -110,19 +110,6 @@ describe("Pool factory", () => {
       ),
     ).to.be.revertedWith("LinearStakingPool: invalid token address");
 
-    await expect(
-      poolFactory.createLinerPool(
-        [mintableToken.address],
-        [fixedToken.address],
-        toWei("10"),
-        (await time.latest()).toNumber(),
-        (await time.latest()).toNumber() - 30,
-        0,
-        toWei("10000000"),
-        0,
-        signer,
-      ),
-    ).to.be.revertedWith("LinearStakingPool: invalid join time");
 
     await expect(
       poolFactory.createLinerPool(
@@ -131,20 +118,6 @@ describe("Pool factory", () => {
         toWei("10"),
         0,
         (await time.latest()).toNumber(),
-        0,
-        toWei("10000000"),
-        0,
-        signer,
-      ),
-    ).to.be.revertedWith("LinearStakingPool: invalid join time");
-
-    await expect(
-      poolFactory.createLinerPool(
-        [mintableToken.address],
-        [fixedToken.address],
-        toWei("10"),
-        (await time.latest()).toNumber(),
-        (await time.latest()).toNumber() + 30,
         toWei("10"),
         toWei("1"),
         0,
@@ -152,4 +125,43 @@ describe("Pool factory", () => {
       ),
     ).to.be.revertedWith("LinearStakingPool: Invalid investment value");
   });
+
+  it("creat allocation pool", async () => {
+    const [, user] = await ethers.getSigners();
+
+    await expect(
+      poolFactory.createAllocationPool(
+        [fixedToken.address, fixedToken.address],
+        [mintableToken.address],
+        "100",
+        "100",
+        "20",
+        "1000"
+      )
+    ).to.be.revertedWith("AllocationPool: invalid token length");
+
+    await expect(
+      poolFactory.createAllocationPool(
+        [ethers.constants.AddressZero],
+        [mintableToken.address],
+        "100",
+        "100",
+        "20",
+        "1000"
+      )
+    ).to.be.revertedWith("AllocationPool: invalid token address");
+
+    await expect(
+      poolFactory.createAllocationPool(
+        [fixedToken.address],
+        [mintableToken.address],
+        "100",
+        "100",
+        "20",
+        "1000"
+      )
+    ).to.not.be.reverted;
+
+    
+  })
 });
