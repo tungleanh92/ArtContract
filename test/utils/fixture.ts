@@ -6,6 +6,7 @@ import {
   TomiToken,
   PoolFactory,
   LinearPool,
+  AllocationPool,
   IERC20,
 } from "../../typechain";
 import * as TomiTokenJSON from "../../artifacts/contracts/mocks/TomiToken.sol/TomiToken.json";
@@ -13,6 +14,7 @@ import * as FixTokenJSON from "../../artifacts/contracts/mocks/FixedToken.sol/Fi
 import * as MintableTokenJSON from "../../artifacts/contracts/mocks/MintableToken.sol/MintableToken.json";
 import * as PoolFactoryJSON from "../../artifacts/contracts/PoolFactory.sol/PoolFactory.json";
 import * as LinerPoolJSON from "../../artifacts/contracts/LinerPool.sol/LinearPool.json";
+import * as AllocationPoolJSON from "../../artifacts/contracts/AllocationPool.sol/AllocationPool.json";
 import * as ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 interface IFixture {
   token0: IERC20;
@@ -21,6 +23,7 @@ interface IFixture {
   poolFactory: PoolFactory;
   mintableToken: MintableToken;
   distributeToken: TomiToken;
+  distributeToken2: TomiToken;
 }
 
 const { toWei } = web3.utils;
@@ -50,16 +53,27 @@ export const fixture: Fixture<IFixture | any> = async ([wallet], _) => {
     LinerPoolJSON,
   ) as unknown as LinearPool;
 
+  const allocImpl = await deployContract(
+    wallet as any,
+    AllocationPoolJSON,
+  ) as unknown as AllocationPool;
+
   const poolFactory = (await deployContract(
     wallet as any,
     PoolFactoryJSON,
-    [linerImpl.address]
+    [linerImpl.address, allocImpl.address]
   )) as unknown as PoolFactory;
 
-  await fixedToken.initialize("Fixed Token", "FXT", toWei("100000000000000"));
+  await fixedToken.initialize("Fixed Token", "FXT", toWei("1000000000000000"));
   await mintableToken.initialize("Mintable Token", "MAT", toWei("100000000000000"));
 
   const distributeToken = (await deployContract(wallet as any, TomiTokenJSON, [
+    wallet.address,
+    wallet.address,
+    wallet.address,
+  ])) as unknown as TomiToken;
+
+  const distributeToken2 = (await deployContract(wallet as any, TomiTokenJSON, [
     wallet.address,
     wallet.address,
     wallet.address,
@@ -69,6 +83,7 @@ export const fixture: Fixture<IFixture | any> = async ([wallet], _) => {
     token0,
     token1,
     distributeToken,
+    distributeToken2,
     fixedToken,
     mintableToken,
     poolFactory,

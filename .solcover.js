@@ -22,5 +22,5 @@ module.exports = {
   //   constantOptimizer: false,
   //   yul: false
   // },
-  skipFiles: ["mocks", "extensions"],
+  skipFiles: ["mocks", "extensions", "libraries"],
 };

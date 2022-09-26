@@ -29,6 +29,8 @@ const chainIds = {
   rinkeby: 4,
   ropsten: 3,
   polygon: 137,
+  bscTestnet: 97,
+  bscMainnet: 56,
   oasistestnet: 42261,
   binamon: 1337,
 };
@@ -54,6 +56,12 @@ function getChainConfig(network: keyof typeof chainIds): NetworkUserConfig {
   }
   if (network === "binamon") {
     url = "http://172.16.1.223:8545"
+  }
+  if(network == "bscTestnet") {
+    url = "https://data-seed-prebsc-1-s1.binance.org:8545"
+  }
+  if(network == "bscMainnet") {
+    url = "https://bsc-dataseed.binance.org/"
   }
   return {
     accounts: [`0x${deployerPrivateKey}`],
@@ -85,6 +93,8 @@ const config: HardhatUserConfig = {
     polygon: getChainConfig("polygon"),
     oasistestnet: getChainConfig("oasistestnet"),
     binamon: getChainConfig("binamon"),
+    bscTestnet: getChainConfig("bscTestnet"),
+    bscMainnet: getChainConfig("bscMainnet")
   },
   etherscan: {
     // Your API key for Etherscan
