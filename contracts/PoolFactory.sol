@@ -58,7 +58,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
             returns (
                 address[] memory lpToken,
                 address[] memory rewardToken,
-                uint256 tokenPerBlock,
+                uint256 bonusMultiplier,
                 uint256  startBlock,
                 uint256  allocPoint,
                 uint256  bonusEndBlock
@@ -66,7 +66,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
                 return (
                     allocationParameters.lpToken,
                     allocationParameters.rewardToken,
-                    allocationParameters.tokenPerBlock,
+                    allocationParameters.bonusMultiplier,
                     allocationParameters.startBlock,
                     allocationParameters.allocPoint,
                     allocationParameters.bonusEndBlock
@@ -138,7 +138,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
     function createAllocationPool(
         address[] memory _lpToken,
         address[] memory _rewardToken,
-        uint256 _tokenPerBlock,
+        uint256 _bonusMultiplier,
         uint256  _startBlock,
         uint256  _allocPoint,
         uint256  _bonusEndBlock
@@ -148,7 +148,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
         poolAddress = _deployAllocation(
             _lpToken,
             _rewardToken,
-            _tokenPerBlock,
+            _bonusMultiplier,
             _startBlock,
             _allocPoint,
             _bonusEndBlock
@@ -192,7 +192,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
     function _deployAllocation(
         address[] memory _lpToken,
         address[] memory _rewardToken,
-        uint256 _tokenPerBlock,
+        uint256 _bonusMultiplier,
         uint256  _startBlock,
         uint256  _allocPoint,
         uint256  _bonusEndBlock
@@ -200,7 +200,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
         allocationParameters = AllocationParams({
             lpToken: _lpToken,
             rewardToken: _rewardToken, 
-            tokenPerBlock: _tokenPerBlock, 
+            bonusMultiplier: _bonusMultiplier, 
             startBlock: _startBlock, 
             allocPoint: _allocPoint,
             bonusEndBlock: _bonusEndBlock 
