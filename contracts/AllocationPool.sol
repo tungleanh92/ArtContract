@@ -39,11 +39,13 @@ contract AllocationPool is
     // Last block number that TOKENs distribution occurs.
     uint256 public lastRewardBlock;
     // Bonus muliplier for early token makers.
-    uint256 constant public BONUS_MULTIPLIER = 10;
+    // uint256 constant public BONUS_MULTIPLIER = 10;
+    uint256 public bonusMultiplier;
     // Block number when bonus TOKEN period ends.
     uint256 public bonusEndBlock;
     // tokens created per block.
-    uint256 public tokenPerBlock;
+    // uint256 public tokenPerBlock;
+    uint256 constant public TOKEN_PER_BLOCK = 10;
     // The block number when TOKEN mining starts.
     uint256 public startBlock;
     // Address of LP token contract.
@@ -89,7 +91,8 @@ contract AllocationPool is
         (
             address[] memory _lpToken,
             address[] memory _rewardToken,
-            uint256 _tokenPerBlock,
+            // uint256 _tokenPerBlock,
+            uint256 _bonusMultiplier,
             uint256  _startBlock,
             uint256  _allocPoint,
             uint256  _bonusEndBlock
@@ -112,7 +115,8 @@ contract AllocationPool is
             }
 
         factory = msg.sender;
-        tokenPerBlock = _tokenPerBlock;
+        // tokenPerBlock = _tokenPerBlock;
+        bonusMultiplier = _bonusMultiplier;
         startBlock = _startBlock;
         allocPoint = _allocPoint;
         bonusEndBlock = _bonusEndBlock;
@@ -180,12 +184,12 @@ contract AllocationPool is
         returns (uint256)
     {
         if (_to <= bonusEndBlock) {
-            return (_to - _from) * BONUS_MULTIPLIER;
+            return (_to - _from) * bonusMultiplier;
         } else if (_from >= bonusEndBlock) {
             return _to -_from;
         } else {
             return
-                (bonusEndBlock - _from) * BONUS_MULTIPLIER + _to - bonusEndBlock;
+                (bonusEndBlock - _from) * bonusMultiplier + _to - bonusEndBlock;
         }
     }
 
@@ -224,7 +228,7 @@ contract AllocationPool is
 
             if (block.number > lastRewardBlock && lpSupply[i] != 0) {
                 uint256 tokenReward =
-                    (multiplier * tokenPerBlock * allocPoint)
+                    (multiplier * TOKEN_PER_BLOCK * allocPoint)
                         / totalAllocPoint;
                 
                 _accTokenPerShare[i] = _accTokenPerShare[i] + (tokenReward * 1e12 / lpSupply[i]);
@@ -250,7 +254,7 @@ contract AllocationPool is
             }
             uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
             uint256 tokenReward =
-                (multiplier * tokenPerBlock * allocPoint)
+                (multiplier * TOKEN_PER_BLOCK * allocPoint)
                         / totalAllocPoint;
             accTokenPerShare[i] = accTokenPerShare[i] + (tokenReward * 1e12 / lpSupply);
         }

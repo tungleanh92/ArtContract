@@ -37,7 +37,7 @@ interface IPoolFactory {
     struct AllocationParams {
         address[] lpToken;
         address[] rewardToken;
-        uint256 tokenPerBlock;
+        uint256 bonusMultiplier;
         uint256  startBlock;
         uint256  allocPoint;
         uint256  bonusEndBlock;
@@ -65,7 +65,7 @@ interface IPoolFactory {
         returns (
             address[] memory lpToken,
             address[] memory rewardToken,
-            uint256 tokenPerBlock,
+            uint256 bonusMultiplier,
             uint256  startBlock,
             uint256  allocPoint,
             uint256  bonusEndBlock
