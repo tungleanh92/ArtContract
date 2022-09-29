@@ -61,8 +61,6 @@ describe("Pool factory", () => {
           toWei("10"),
           0,
           (await time.latest()).toNumber(),
-          0,
-          0,
           "0",
           signer,
         ),
@@ -76,8 +74,6 @@ describe("Pool factory", () => {
         0,
         (await time.latest()).toNumber(),
         0,
-        toWei("10000000"),
-        0,
         signer,
       ),
     ).to.not.reverted;
@@ -89,8 +85,6 @@ describe("Pool factory", () => {
         toWei("10"),
         0,
         (await time.latest()).toNumber(),
-        0,
-        toWei("10000000"),
         0,
         signer,
       ),
@@ -104,26 +98,10 @@ describe("Pool factory", () => {
         0,
         (await time.latest()).toNumber(),
         0,
-        toWei("10000000"),
-        0,
         signer,
       ),
     ).to.be.revertedWith("LinearStakingPool: invalid token address");
 
-
-    await expect(
-      poolFactory.createLinerPool(
-        [mintableToken.address],
-        [fixedToken.address],
-        toWei("10"),
-        0,
-        (await time.latest()).toNumber(),
-        toWei("10"),
-        toWei("1"),
-        0,
-        signer,
-      ),
-    ).to.be.revertedWith("LinearStakingPool: Invalid investment value");
   });
 
   it("creat allocation pool", async () => {

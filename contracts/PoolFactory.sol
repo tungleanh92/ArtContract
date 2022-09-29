@@ -32,8 +32,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
                 uint256 cap,
                 uint256 startTimeJoin,
                 uint256 endTimeJoin,
-                uint256 minInvestment,
-                uint256 maxInvestment,
                 uint256 lockDuration,
                 address rewardDistributor
             ) {
@@ -44,8 +42,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
                     linerParameters.cap,
                     linerParameters.startTimeJoin,
                     linerParameters.endTimeJoin,
-                    linerParameters.minInvestment,
-                    linerParameters.maxInvestment,
                     linerParameters.lockDuration,
                     linerParameters.rewardDistributor
                 );
@@ -113,8 +109,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
         uint256 _APR,
         uint256 _cap,
         uint256 _startTimeJoin,
-        uint256 _minInvestment,
-        uint256 _maxInvestment,
         uint256 _lockDuration,
         address _rewardDistributor
     ) external returns (address poolAddress) {
@@ -126,8 +120,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
             _APR,
             _cap,
             _startTimeJoin,
-            _minInvestment,
-            _maxInvestment,
             _lockDuration,
             _rewardDistributor
         );
@@ -163,8 +155,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
         uint256 _APR,
         uint256 _cap,
         uint256 _startTimeJoin,
-        uint256 _minInvestment,
-        uint256 _maxInvestment,
         uint256 _lockDuration,
         address _rewardDistributor
     ) private returns (address poolAddress) {
@@ -176,8 +166,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
             cap: _cap,
             startTimeJoin: _startTimeJoin,
             endTimeJoin: 0,
-            minInvestment: _minInvestment,
-            maxInvestment: _maxInvestment,
             lockDuration: _lockDuration,
             rewardDistributor: _rewardDistributor
         });

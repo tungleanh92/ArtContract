@@ -25,10 +25,6 @@ contract LinearPool is
     address public linearRewardDistributor;
     // Max token numbers can stake into this pool
     uint256 cap;
-    // Max tokens an user can stake into this
-    uint256 public maxInvestment;
-    // Min tokens an user must stake into this
-    uint256 public minInvestment;
     // APR of this pool
     uint256 public APR;
     // Lock time to claim reward after staked
@@ -100,19 +96,12 @@ contract LinearPool is
             uint256 _cap,
             uint256 _startTimeJoin,
             uint256 _endTimeJoin,
-            uint256 _minInvestment,
-            uint256 _maxInvestment,
             uint256 _lockDuration,
             address _rewardDistributor
         ) = IPoolFactory(msg.sender).getLinerParameters();
 
 
         uint256 _rewardLength = _stakeToken.length;
-
-        require(
-            _maxInvestment >= _minInvestment,
-            "LinearStakingPool: Invalid investment value"
-        );
 
         require(
             _rewardLength == _saleToken.length,
@@ -134,8 +123,6 @@ contract LinearPool is
         cap = _cap;
         startJoinTime = _startTimeJoin;
         endJoinTime = _endTimeJoin;
-        minInvestment = _minInvestment;
-        maxInvestment = _maxInvestment;
         lockDuration = _lockDuration;
         linearRewardDistributor = _rewardDistributor;
 

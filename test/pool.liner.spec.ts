@@ -48,8 +48,6 @@ describe("Pool", () => {
       toWei("10"),
       0,
       (await time.latest()).toNumber(),
-      toWei("1"),
-      toWei("10"),
       duration.hours("1"),
       distributor.address,
     );
@@ -60,8 +58,6 @@ describe("Pool", () => {
       toWei("10"),
       0,
       (await time.latest()).toNumber(),
-      toWei("1"),
-      toWei("10"),
       duration.hours("1"),
       distributor.address,
     );
@@ -77,8 +73,6 @@ describe("Pool", () => {
       toWei("10"),
       0,
       (await time.latest()).toNumber(),
-      toWei("1"),
-      toWei("10"),
       duration.hours("1"),
       ethers.constants.AddressZero,
     );
@@ -89,8 +83,6 @@ describe("Pool", () => {
       toWei("10"),
       0,
       (await time.latest()).toNumber(),
-      toWei("1"),
-      toWei("10"),
       duration.hours("1"),
       ethers.constants.AddressZero,
     );
@@ -101,8 +93,6 @@ describe("Pool", () => {
       toWei("10"),
       0,
       (await time.latest()).toNumber() + 3600,
-      toWei("1"),
-      toWei("10"),
       duration.hours("1"),
       distributor.address,
     );
@@ -113,8 +103,6 @@ describe("Pool", () => {
       toWei("10"),
       0,
       (await time.latest()).toNumber() + 3600,
-      toWei("1"),
-      toWei("10"),
       duration.hours("1"),
       distributor.address,
     );
