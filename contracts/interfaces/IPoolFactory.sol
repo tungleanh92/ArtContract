@@ -28,8 +28,6 @@ interface IPoolFactory {
         uint256  cap;
         uint256  startTimeJoin;
         uint256  endTimeJoin;
-        uint256  minInvestment;
-        uint256  maxInvestment;
         uint256  lockDuration;
         address  rewardDistributor;
     }
@@ -54,8 +52,6 @@ interface IPoolFactory {
             uint256 cap,
             uint256 startTimeJoin,
             uint256 endTimeJoin,
-            uint256 minInvestment,
-            uint256 maxInvestment,
             uint256 lockDuration,
             address rewardDistributor
         );
