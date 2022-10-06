@@ -33,6 +33,8 @@ const chainIds = {
   bscMainnet: 56,
   oasistestnet: 42261,
   binamon: 1337,
+  KCC: 321,
+  KCCTestnet: 322,
 };
 
 // Ensure that we have all the environment variables we need.
@@ -62,6 +64,12 @@ function getChainConfig(network: keyof typeof chainIds): NetworkUserConfig {
   }
   if(network == "bscMainnet") {
     url = "https://bsc-dataseed.binance.org/"
+  }
+  if (network === "KCC") {
+    url = "https://rpc-mainnet.kcc.network/";
+  }
+  if (network === "KCCTestnet") {
+    url = "https://rpc-testnet.kcc.network/";
   }
   return {
     accounts: [`0x${deployerPrivateKey}`],
@@ -94,7 +102,9 @@ const config: HardhatUserConfig = {
     oasistestnet: getChainConfig("oasistestnet"),
     binamon: getChainConfig("binamon"),
     bscTestnet: getChainConfig("bscTestnet"),
-    bscMainnet: getChainConfig("bscMainnet")
+    bscMainnet: getChainConfig("bscMainnet"),
+    KCC: getChainConfig("KCC"),
+    KCCTestnet: getChainConfig("KCCTestnet"),
   },
   etherscan: {
     // Your API key for Etherscan
@@ -121,9 +131,6 @@ const config: HardhatUserConfig = {
             runs: 200,
           },
         },
-      },
-      {
-        version: "0.5.17",
       },
     ],
   },
