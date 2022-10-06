@@ -2,16 +2,18 @@
 pragma solidity 0.8.4;
 
 import "./interfaces/IPoolFactory.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "hardhat/console.sol";
 
 contract AllocationPool is
     PausableUpgradeable {
 
     using SafeERC20 for IERC20;
+    using Address for address;
     bytes32 public constant MOD = keccak256("MOD");
     bytes32 public constant ADMIN = keccak256("ADMIN");
     
@@ -39,12 +41,10 @@ contract AllocationPool is
     // Last block number that TOKENs distribution occurs.
     uint256 public lastRewardBlock;
     // Bonus muliplier for early token makers.
-    // uint256 constant public BONUS_MULTIPLIER = 10;
     uint256 public bonusMultiplier;
     // Block number when bonus TOKEN period ends.
     uint256 public bonusEndBlock;
     // tokens created per block.
-    // uint256 public tokenPerBlock;
     uint256 constant public TOKEN_PER_BLOCK = 10;
     // The block number when TOKEN mining starts.
     uint256 public startBlock;
@@ -56,6 +56,8 @@ contract AllocationPool is
     uint256[] public accTokenPerShare;
     // Info of each user that stakes LP tokens.
     mapping(address => UserInfo) internal userInfo;
+    // Token per block with decimals
+    uint256[] public decimalTokenPerBlock;
 
     event ChangeAllocationPoint(uint256 point);
     event Deposit(address indexed user, uint256[] amount);
@@ -86,12 +88,11 @@ contract AllocationPool is
     external
     initializer {
 
-    __Pausable_init();
+        __Pausable_init();
 
         (
             address[] memory _lpToken,
             address[] memory _rewardToken,
-            // uint256 _tokenPerBlock,
             uint256 _bonusMultiplier,
             uint256  _startBlock,
             uint256  _allocPoint,
@@ -112,10 +113,13 @@ contract AllocationPool is
                 lpToken.push(IERC20(_lpToken[i]));
                 rewardToken.push(IERC20(_rewardToken[i]));
                 accTokenPerShare.push(0);
+
+                uint8 _decimals = _getDecimals(_rewardToken[i]);
+                uint256 _formated = TOKEN_PER_BLOCK * (10**(_decimals));
+                decimalTokenPerBlock.push(_formated);
             }
 
         factory = msg.sender;
-        // tokenPerBlock = _tokenPerBlock;
         bonusMultiplier = _bonusMultiplier;
         startBlock = _startBlock;
         allocPoint = _allocPoint;
@@ -228,7 +232,7 @@ contract AllocationPool is
 
             if (block.number > lastRewardBlock && lpSupply[i] != 0) {
                 uint256 tokenReward =
-                    (multiplier * TOKEN_PER_BLOCK * allocPoint)
+                    (multiplier * decimalTokenPerBlock[i] * allocPoint)
                         / totalAllocPoint;
                 
                 _accTokenPerShare[i] = _accTokenPerShare[i] + (tokenReward * 1e12 / lpSupply[i]);
@@ -254,7 +258,7 @@ contract AllocationPool is
             }
             uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
             uint256 tokenReward =
-                (multiplier * TOKEN_PER_BLOCK * allocPoint)
+                (multiplier * decimalTokenPerBlock[i] * allocPoint)
                         / totalAllocPoint;
             accTokenPerShare[i] = accTokenPerShare[i] + (tokenReward * 1e12 / lpSupply);
         }
@@ -338,6 +342,25 @@ contract AllocationPool is
         } else {
             token.transfer(_to, _amount);
         }
+    }
+
+    function _getDecimals(address _token) internal view returns(uint8) {
+        uint8 _decimals = _callOptionalReturn(
+                            IERC20Metadata(_token), 
+                            abi.encodeWithSelector(IERC20Metadata(_token).decimals.selector
+                        ));
+        require(_decimals > 0, "AllocationPool: invalid decimals");
+        return _decimals;
+    }
+
+    function _callOptionalReturn(IERC20 token, bytes memory data) private view returns (uint8){
+        uint8 decimals = 0;
+        bytes memory returndata = address(token).functionStaticCall(data, "AllocationPool: not ERC20");
+        if (returndata.length > 0) {
+            decimals = abi.decode(returndata, (uint8));
+        }
+
+        return decimals;
     }
 
 }

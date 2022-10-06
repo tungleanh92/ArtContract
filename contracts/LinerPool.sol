@@ -2,7 +2,9 @@
 pragma solidity 0.8.4;
 
 import "./interfaces/IPoolFactory.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
@@ -14,6 +16,7 @@ contract LinearPool is
     PausableUpgradeable {
 
     using SafeERC20 for IERC20;
+    using Address for address;
 
     bytes32 public constant MOD = keccak256("MOD");
     bytes32 public constant ADMIN = keccak256("ADMIN");
@@ -24,7 +27,7 @@ contract LinearPool is
     // The reward distribution address
     address public linearRewardDistributor;
     // Max token numbers can stake into this pool
-    uint256 cap;
+    uint256 public cap;
     // APR of this pool
     uint256 public APR;
     // Lock time to claim reward after staked
@@ -39,6 +42,8 @@ contract LinearPool is
     IERC20[] public linearAcceptedToken;
     // Reward token
     IERC20[] public linearRewardToken;
+    // Cap with decimals
+    uint256[] public decimalsCap;
 
     // Info of each user that stakes in pool
     mapping(address => LinearStakingData) public linearStakingData;
@@ -113,9 +118,14 @@ contract LinearPool is
                 _saleToken[i] != address(0) && _stakeToken[i] != address(0),
                 "LinearStakingPool: invalid token address"
             );
+
             linearAcceptedToken.push(IERC20(_stakeToken[i]));
             linearRewardToken.push(IERC20(_saleToken[i]));
             totalStaked.push(0);
+
+            uint8 _decimals = _getDecimals(_saleToken[i]);
+            uint256 _formatedCap = _cap / 1e18 * (10 ** _decimals);
+            decimalsCap.push(_formatedCap);
         }
         
         factory = msg.sender;
@@ -423,7 +433,7 @@ contract LinearPool is
         if (cap > 0) {
             for(uint256 i=0; i<linearAcceptedToken.length; i++) {
                 require(
-                    totalStaked[i] + _amount[i] <= cap,
+                    totalStaked[i] + _amount[i] <= decimalsCap[i],
                     "LinearStakingPool: pool is full"
                 );
             }
@@ -448,5 +458,24 @@ contract LinearPool is
         }
         stakingData.reward = linearPendingReward(_account);
         stakingData.updatedTime = block.timestamp;
+    }
+
+    function _getDecimals(address _token) internal view returns(uint8) {
+        uint8 _decimals = _callOptionalReturn(
+                            IERC20Metadata(_token), 
+                            abi.encodeWithSelector(IERC20Metadata(_token).decimals.selector
+                        ));
+        require(_decimals > 0, "LinearStakingPool: invalid decimals");
+        return _decimals;
+    }
+
+    function _callOptionalReturn(IERC20 token, bytes memory data) private view returns (uint8){
+        uint8 decimals = 0;
+        bytes memory returndata = address(token).functionStaticCall(data, "LinearStakingPool: not ERC20");
+        if (returndata.length > 0) {
+            decimals = abi.decode(returndata, (uint8));
+        }
+
+        return decimals;
     }
 }
