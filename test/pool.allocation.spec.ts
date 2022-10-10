@@ -200,6 +200,7 @@ describe("Pool", () => {
       await mintableToken.connect(account3).approve(poolAddress, ethers.constants.MaxUint256);
       await distributeToken.transfer(pool.address, toWei("1375000000"));
 
+      
 
       // 10 per block farming rate starting at block 200 with bonus until block 1000
       // user 1 deposits 10 LPs at block 210
@@ -295,6 +296,8 @@ describe("Pool", () => {
       await mintableToken.connect(account3).approve(poolAddress, ethers.constants.MaxUint256);
       await distributeToken.transfer(pool.address, toWei("1375000000"));
 
+      await expect(pool.withdraw(["0"])).to.not.be.reverted;
+      await expect(pool.pendingToken(account1.address)).to.not.be.reverted;
 
       // 10 per block farming rate starting at block 300 with bonus until block 1000
       // set alloctionPoint is 10
@@ -507,6 +510,52 @@ describe("Pool", () => {
       expect(await distributeToken.balanceOf(account1.address)).to.equal("555555555555555555555")
       expect(await distributeToken2.balanceOf(account1.address)).to.equal("1111111111111111111110")
 
+    })
+
+    it("Pause - Unpause contract - recover fund", async () => {
+      const poolAddress = await poolFactory.callStatic.createAllocationPool(
+        [mintableToken.address],
+        [distributeToken.address],
+        ["1"],
+        "100",
+        "100",
+        "100",
+        "1000",
+        time.duration.hours("1"),
+      );
+
+      await poolFactory.createAllocationPool(
+        [mintableToken.address],
+        [distributeToken.address],
+        ["1"],
+        "100",
+        "100",
+        "100",
+        "1000",
+        time.duration.hours("1"),
+      );
+
+      pool = (await ethers.getContractAt(
+        "AllocationPool",
+        poolAddress,
+      )) as AllocationPool;
+
+      await expect(
+        pool.pauseContract()
+      ).to.not.be.reverted;
+
+      await expect(
+        pool.unpauseContract()
+      ).to.not.be.reverted;
+
+      await distributeToken.transfer(pool.address, toWei("1375000000"));
+      await expect(
+        pool.adminRecoverFund(distributeToken.address, account1.address, "100")
+      ).to.not.be.reverted;
+
+      await expect(
+        pool.connect(account1.address).getUserInfo(account1.address)
+      ).to.not.be.reverted;
     })
 
   })

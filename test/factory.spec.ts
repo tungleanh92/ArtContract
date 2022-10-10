@@ -102,6 +102,19 @@ describe("Pool factory", () => {
       ),
     ).to.be.revertedWith("LinearStakingPool: invalid token address");
 
+    const poolAddress = await poolFactory.callStatic.createLinerPool(
+      [mintableToken.address],
+      [fixedToken.address],
+      toWei("10"),
+      0,
+      (await time.latest()).toNumber(),
+      0,
+      signer,
+    );
+
+    await expect(
+      poolFactory.changeLinerImpl(poolAddress)
+    ).to.not.be.reverted;
   });
 
   it("creat allocation pool", async () => {
@@ -115,8 +128,8 @@ describe("Pool factory", () => {
         "100",
         "100",
         "20",
-        time.duration.hours("1"),
-        "1000"
+        "1000",
+        time.duration.hours("1")
       )
     ).to.be.revertedWith("AllocationPool: invalid token length");
 
@@ -128,8 +141,8 @@ describe("Pool factory", () => {
         "100",
         "100",
         "20",
-        time.duration.hours("1"),
-        "1000"
+        "1000",
+        time.duration.hours("1")
       )
     ).to.be.revertedWith("AllocationPool: invalid token address");
 
@@ -141,11 +154,24 @@ describe("Pool factory", () => {
         "100",
         "100",
         "20",
-        time.duration.hours("1"),
-        "1000"
+        "1000",
+        time.duration.hours("1")
       )
     ).to.not.be.reverted;
 
-    
+    const pool2Address = await poolFactory.callStatic.createAllocationPool(
+      [fixedToken.address],
+      [mintableToken.address],
+      ["1"],
+      "100",
+      "100",
+      "20",
+      "1000",
+      time.duration.hours("1"),
+    );
+
+    await expect(
+      poolFactory.changeAllocationImpl(pool2Address)
+    ).to.not.be.reverted;
   })
 });
