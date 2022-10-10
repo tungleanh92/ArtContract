@@ -6,8 +6,8 @@ import { expect } from "chai";
 import { MintableToken } from "../typechain/MintableToken";
 import { FixedToken } from "../typechain/FixedToken";
 import { LinearPool, PoolFactory } from "../typechain";
-import { balanceOf, fakeWithdrawData, fakeWithdrawData02 } from "./utils/utils";
-import { MOD_ROLE, ADMIN_ROLE } from "./utils/constant";
+import { balanceOf } from "./utils/utils";
+import { MOD_ROLE } from "./utils/constant";
 import { duration } from "./utils/time";
 import * as time from "./utils/time";
 const { toWei, fromWei } = web3.utils;
@@ -23,6 +23,7 @@ describe("Pool", () => {
   let mintableToken: MintableToken;
   let poolFactory: PoolFactory;
   let pool: LinearPool;
+  let poolCap5: LinearPool;
   let poolZero: LinearPool;
   let poolFuture: LinearPool;
 
@@ -65,6 +66,31 @@ describe("Pool", () => {
     pool = (await ethers.getContractAt(
       "LinearPool",
       poolAddress,
+    )) as LinearPool;
+
+    const poolCap5Address = await poolFactory.callStatic.createLinerPool(
+      [mintableToken.address],
+      [fixedToken.address],
+      toWei("10"),
+      toWei("5"),
+      (await time.latest()).toNumber(),
+      duration.hours("1"),
+      distributor.address,
+    );
+
+    await poolFactory.createLinerPool(
+      [mintableToken.address],
+      [fixedToken.address],
+      toWei("10"),
+      toWei("5"),
+      (await time.latest()).toNumber(),
+      duration.hours("1"),
+      distributor.address,
+    );
+
+    poolCap5 = (await ethers.getContractAt(
+      "LinearPool",
+      poolCap5Address,
     )) as LinearPool;
 
     const poolZeroAddress = await poolFactory.callStatic.createLinerPool(
@@ -121,6 +147,10 @@ describe("Pool", () => {
     await mintableToken.connect(account2).approve(poolAddress, ethers.constants.MaxUint256);
     await fixedToken.connect(distributor).approve(poolAddress, ethers.constants.MaxUint256);
 
+    await mintableToken.connect(account1).approve(poolCap5Address, ethers.constants.MaxUint256);
+    await mintableToken.connect(account2).approve(poolCap5Address, ethers.constants.MaxUint256);
+    await fixedToken.connect(distributor).approve(poolCap5Address, ethers.constants.MaxUint256);
+
     await mintableToken.connect(account1).approve(poolZeroAddress, ethers.constants.MaxUint256);
     await mintableToken.connect(account2).approve(poolZeroAddress, ethers.constants.MaxUint256);
     await fixedToken.connect(distributor).approve(poolZeroAddress, ethers.constants.MaxUint256);
@@ -151,6 +181,20 @@ describe("Pool", () => {
       acc2Amounts = await (await pool.linearBalanceOf(account2.address)).map(e => e.toString());
       expect(acc2Amounts).to.deep.equal([toWei("10")])
 
+    });
+
+    it("Stake 5_cap pool", async () => {
+      await poolCap5.connect(account1).linearDeposit([toWei("2")]);
+      await poolCap5.connect(account2).linearDeposit([toWei("2")]);
+
+      const acc1Amounts = await (await poolCap5.linearBalanceOf(account1.address)).map(e => e.toString());
+      let acc2Amounts = await (await poolCap5.linearBalanceOf(account2.address)).map(e => e.toString());
+
+      expect(acc1Amounts).to.deep.equal([toWei("2")]).to.deep.equal(acc2Amounts);
+
+      await expect(
+        poolCap5.connect(account2).linearDeposit([toWei("2")])
+      ).to.be.revertedWith("LinearStakingPool: pool is full");
     });
 
     it("Stake - revert cases", async () => {

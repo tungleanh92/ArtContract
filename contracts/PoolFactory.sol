@@ -54,18 +54,22 @@ contract PoolFactory is IPoolFactory, AccessControl {
             returns (
                 address[] memory lpToken,
                 address[] memory rewardToken,
+                uint256[] memory stakedTokenRate,
                 uint256 bonusMultiplier,
                 uint256  startBlock,
                 uint256  allocPoint,
-                uint256  bonusEndBlock
+                uint256  bonusEndBlock,
+                uint256 lockDuration
             ) {
                 return (
                     allocationParameters.lpToken,
                     allocationParameters.rewardToken,
+                    allocationParameters.stakedTokenRate,
                     allocationParameters.bonusMultiplier,
                     allocationParameters.startBlock,
                     allocationParameters.allocPoint,
-                    allocationParameters.bonusEndBlock
+                    allocationParameters.bonusEndBlock,
+                    allocationParameters.lockDuration
                 );
             }
 
@@ -130,20 +134,24 @@ contract PoolFactory is IPoolFactory, AccessControl {
     function createAllocationPool(
         address[] memory _lpToken,
         address[] memory _rewardToken,
+        uint256[] memory _stakedTokenRate,
         uint256 _bonusMultiplier,
         uint256  _startBlock,
         uint256  _allocPoint,
-        uint256  _bonusEndBlock
+        uint256  _bonusEndBlock,
+        uint256 _lockDuration
     ) external returns (address poolAddress) {
         require(hasRole(ADMIN, msg.sender), "PoolFactory: require ADMIN role");
 
         poolAddress = _deployAllocation(
             _lpToken,
             _rewardToken,
+            _stakedTokenRate,
             _bonusMultiplier,
             _startBlock,
             _allocPoint,
-            _bonusEndBlock
+            _bonusEndBlock,
+            _lockDuration
         );
 
         emit AllocationPoolCreated(poolAddress);
@@ -180,18 +188,22 @@ contract PoolFactory is IPoolFactory, AccessControl {
     function _deployAllocation(
         address[] memory _lpToken,
         address[] memory _rewardToken,
+        uint256[] memory _stakedTokenRate,    
         uint256 _bonusMultiplier,
         uint256  _startBlock,
         uint256  _allocPoint,
-        uint256  _bonusEndBlock
+        uint256  _bonusEndBlock,
+        uint256 _lockDuration
     ) private returns(address poolAddress) {
         allocationParameters = AllocationParams({
             lpToken: _lpToken,
-            rewardToken: _rewardToken, 
+            rewardToken: _rewardToken,
+            stakedTokenRate: _stakedTokenRate,
             bonusMultiplier: _bonusMultiplier, 
             startBlock: _startBlock, 
             allocPoint: _allocPoint,
-            bonusEndBlock: _bonusEndBlock 
+            bonusEndBlock: _bonusEndBlock ,
+            lockDuration: _lockDuration
         });
 
         poolAddress = Clones.clone(address(allocationImpl));
