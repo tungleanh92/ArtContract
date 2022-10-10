@@ -103,7 +103,7 @@ contract AllocationPool is PausableUpgradeable {
 
         uint256 _rewardLength = _lpToken.length;
         require(
-            _rewardLength == _rewardToken.length,
+            _rewardLength == _rewardToken.length && _rewardLength == _stakedTokenRate.length,
             "AllocationPool: invalid token length"
         );
 
@@ -253,16 +253,20 @@ contract AllocationPool is PausableUpgradeable {
             return;
         }
         uint256 totalAllocPoint = IPoolFactory(factory).totalAllocPoint();
-
+        uint256[] memory  _stakedTokenRate = stakedTokenRate; 
+        uint256 sum;
+        for(uint256 i = 0; i < _stakedTokenRate.length; ++i) {
+            sum += _stakedTokenRate[i];
+        }
         for (uint256 i = 0; i < lpToken.length; i++) {
             uint256 lpSupply = lpToken[i].balanceOf(address(this));
             if (lpSupply == 0) {
                 continue;
             }
             uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
-            uint256 tokenReward = (multiplier *
+            uint256 tokenReward = (((multiplier *
                 decimalTokenPerBlock[i] *
-                allocPoint) / totalAllocPoint;
+                allocPoint) / totalAllocPoint) / sum) * _stakedTokenRate[i];
             accTokenPerShare[i] =
                 accTokenPerShare[i] +
                 ((tokenReward * 1e12) / lpSupply);

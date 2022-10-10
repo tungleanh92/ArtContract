@@ -504,8 +504,8 @@ describe("Pool", () => {
       await time.advanceBlockTo(419);
       await pool2.connect(account1).deposit(["0", "0"]);
 
-      expect(await distributeToken.balanceOf(account1.address)).to.equal("1666666666666666666666")
-      expect(await distributeToken2.balanceOf(account1.address)).to.equal("1666666666666666666666")
+      expect(await distributeToken.balanceOf(account1.address)).to.equal("555555555555555555555")
+      expect(await distributeToken2.balanceOf(account1.address)).to.equal("1111111111111111111110")
 
     })
 
