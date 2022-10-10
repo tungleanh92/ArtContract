@@ -315,10 +315,12 @@ contract AllocationPool is PausableUpgradeable {
      */
     function withdraw(uint256[] memory _amounts) external whenNotPaused {
         UserInfo storage user = userInfo[msg.sender];
-        require(
-            block.timestamp >= user.joinTime + lockDuration,
-            "AllocationStakingPool: still locked"
-        );
+        if(lockDuration > 0) {
+            require(
+                block.timestamp >= user.joinTime + lockDuration,
+                "AllocationStakingPool: still locked"
+            );
+        }
         updatePool();
         if (user.amount.length == 0) {
             user.amount = new uint256[](lpToken.length);

@@ -91,6 +91,10 @@ describe("Pool", () => {
       // console.log(await (await distributeToken.balanceOf(deployer.address)).toString());
 
 
+      // nothing to withdraw
+      await expect(
+        pool.connect(account1).emergencyWithdraw()
+      ).to.not.be.reverted;
 
       // 100 per block farming rate starting at block 100 with bonus until block 1000
       await pool.connect(account1).deposit(["100"]);
@@ -558,5 +562,102 @@ describe("Pool", () => {
       ).to.not.be.reverted;
     })
 
+    it("should give proper TOKENs allocation to no and half time multiper", async () => {
+      // deploy
+      const poolAddress = await poolFactory.callStatic.createAllocationPool(
+        [mintableToken.address],
+        [distributeToken.address],
+        ["1"],
+        "100",
+        "100",
+        "100",
+        "1000",
+        time.duration.hours("1"),
+      );
+
+      await poolFactory.createAllocationPool(
+        [mintableToken.address],
+        [distributeToken.address],
+        ["1"],
+        "100",
+        "100",
+        "100",
+        "1000",
+        time.duration.hours("1"),
+      );
+
+      pool = (await ethers.getContractAt(
+        "AllocationPool",
+        poolAddress,
+      )) as AllocationPool;
+
+      await mintableToken.connect(account1).approve(poolAddress, ethers.constants.MaxUint256);
+      await mintableToken.connect(account2).approve(poolAddress, ethers.constants.MaxUint256);
+      await mintableToken.connect(account3).approve(poolAddress, ethers.constants.MaxUint256);
+      await distributeToken.transfer(pool.address, toWei("1375000000"));
+
+      await time.advanceBlockTo(998);
+      // deposit 10 at block 990
+      await pool.connect(account1).deposit(["10"]);
+
+      await time.increase(time.duration.hours("1"));
+      await time.advanceBlockTo(1009);
+      // withdraw at block 1010 => 990 ~ 1000 has multiper, 1001 ~ 1010 no multiper
+      await pool.connect(account1).withdraw(["10"]);
+
+      // reward should be 10 * 10 * 100 * 10^18 + 10 * 10 * 10^18
+      expect(await distributeToken.balanceOf(account1.address)).to.equal(toWei("1100"));
+      // deposit 10 at block 1100
+      await time.advanceBlockTo(1099);
+      await pool.connect(account1).deposit(["10"]);
+
+      await time.advanceBlockTo(1109);
+      await pool.connect(account1).deposit(["0"]);
+      // reward should be 10 * 10 * 10^18 + 1100 * 10^18
+      expect(await distributeToken.balanceOf(account1.address)).to.equal(toWei("1200"));
+    })
+
+    it("should return contract reward balance if don't have enough", async () => {
+      // deploy
+      const poolAddress = await poolFactory.callStatic.createAllocationPool(
+        [mintableToken.address],
+        [distributeToken.address],
+        ["1"],
+        "100",
+        "100",
+        "100",
+        "1000",
+        time.duration.hours("1"),
+      );
+
+      await poolFactory.createAllocationPool(
+        [mintableToken.address],
+        [distributeToken.address],
+        ["1"],
+        "100",
+        "100",
+        "100",
+        "1000",
+        time.duration.hours("1"),
+      );
+
+      pool = (await ethers.getContractAt(
+        "AllocationPool",
+        poolAddress,
+      )) as AllocationPool;
+
+      await mintableToken.connect(account1).approve(poolAddress, ethers.constants.MaxUint256);
+      await mintableToken.connect(account2).approve(poolAddress, ethers.constants.MaxUint256);
+      await mintableToken.connect(account3).approve(poolAddress, ethers.constants.MaxUint256);
+      await distributeToken.transfer(pool.address, "100000");
+
+      await time.advanceBlockTo(1999);
+      await pool.connect(account1).deposit(["10"]);
+
+      await time.advanceBlockTo(2009);
+      await pool.connect(account1).deposit(["0"]);
+
+      expect(await distributeToken.balanceOf(account1.address)).to.equal("100000");
+    })
   })
 })
