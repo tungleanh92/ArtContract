@@ -35,10 +35,12 @@ interface IPoolFactory {
     struct AllocationParams {
         address[] lpToken;
         address[] rewardToken;
+        uint256[] stakedTokenRate;
         uint256 bonusMultiplier;
         uint256  startBlock;
         uint256  allocPoint;
         uint256  bonusEndBlock;
+        uint256  lockDuration;
     }
 
     function setTotalAllocPoint(uint256 _newTotalAllocPoint) external;
@@ -61,9 +63,11 @@ interface IPoolFactory {
         returns (
             address[] memory lpToken,
             address[] memory rewardToken,
+            uint256[] memory stakedTokenRate,
             uint256 bonusMultiplier,
             uint256  startBlock,
             uint256  allocPoint,
-            uint256  bonusEndBlock
+            uint256  bonusEndBlock,
+            uint256 lockDuration
         );
 }

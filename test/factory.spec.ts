@@ -111,9 +111,11 @@ describe("Pool factory", () => {
       poolFactory.createAllocationPool(
         [fixedToken.address, fixedToken.address],
         [mintableToken.address],
+        ["1"],
         "100",
         "100",
         "20",
+        time.duration.hours("1"),
         "1000"
       )
     ).to.be.revertedWith("AllocationPool: invalid token length");
@@ -122,9 +124,11 @@ describe("Pool factory", () => {
       poolFactory.createAllocationPool(
         [ethers.constants.AddressZero],
         [mintableToken.address],
+        ["1"],
         "100",
         "100",
         "20",
+        time.duration.hours("1"),
         "1000"
       )
     ).to.be.revertedWith("AllocationPool: invalid token address");
@@ -133,9 +137,11 @@ describe("Pool factory", () => {
       poolFactory.createAllocationPool(
         [fixedToken.address],
         [mintableToken.address],
+        ["1"],
         "100",
         "100",
         "20",
+        time.duration.hours("1"),
         "1000"
       )
     ).to.not.be.reverted;

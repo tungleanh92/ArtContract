@@ -9,18 +9,17 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract AllocationPool is
-    PausableUpgradeable {
-
+contract AllocationPool is PausableUpgradeable {
     using SafeERC20 for IERC20;
     using Address for address;
     bytes32 public constant MOD = keccak256("MOD");
     bytes32 public constant ADMIN = keccak256("ADMIN");
-    
+
     // Info of each user.
     struct UserInfo {
-        uint256[] amount;     // How many LP tokens the user has provided.
+        uint256[] amount; // How many LP tokens the user has provided.
         uint256[] rewardDebt; // Reward debt. See explanation below.
+        uint256 joinTime;
         //
         // We do some fancy math here. Basically, any point in time, the amount of TOKENs
         // entitled to a user but is pending to be distributed is:
@@ -45,13 +44,17 @@ contract AllocationPool is
     // Block number when bonus TOKEN period ends.
     uint256 public bonusEndBlock;
     // tokens created per block.
-    uint256 constant public TOKEN_PER_BLOCK = 10;
+    uint256 public constant TOKEN_PER_BLOCK = 10;
     // The block number when TOKEN mining starts.
     uint256 public startBlock;
+    // Lock time to claim reward after staked
+    uint256 public lockDuration;
     // Address of LP token contract.
     IERC20[] public lpToken;
     // Reward token
     IERC20[] public rewardToken;
+    // Token rate each pool
+    uint256[] public stakedTokenRate;
     // Accumulated TOKENs per share, times 1e12. See below.
     uint256[] public accTokenPerShare;
     // Info of each user that stakes LP tokens.
@@ -84,62 +87,58 @@ contract AllocationPool is
     /**
      * @notice Initialize the contract, get called in the first time deploy
      */
-    function initialize() 
-    external
-    initializer {
-
+    function initialize() external initializer {
         __Pausable_init();
 
         (
             address[] memory _lpToken,
             address[] memory _rewardToken,
+            uint256[] memory _stakedTokenRate,
             uint256 _bonusMultiplier,
-            uint256  _startBlock,
-            uint256  _allocPoint,
-            uint256  _bonusEndBlock
+            uint256 _startBlock,
+            uint256 _allocPoint,
+            uint256 _bonusEndBlock,
+            uint256 _lockDuration
         ) = IPoolFactory(msg.sender).getAllocationParameters();
 
         uint256 _rewardLength = _lpToken.length;
         require(
-                _rewardLength == _rewardToken.length,
-                "AllocationPool: invalid token length"
+            _rewardLength == _rewardToken.length,
+            "AllocationPool: invalid token length"
         );
 
         for (uint256 i = 0; i < _rewardLength; i++) {
-                require(
-                    _lpToken[i] != address(0) && _rewardToken[i] != address(0),
-                    "AllocationPool: invalid token address"
-                );
-                lpToken.push(IERC20(_lpToken[i]));
-                rewardToken.push(IERC20(_rewardToken[i]));
-                accTokenPerShare.push(0);
+            require(
+                _lpToken[i] != address(0) && _rewardToken[i] != address(0),
+                "AllocationPool: invalid token address"
+            );
+            lpToken.push(IERC20(_lpToken[i]));
+            rewardToken.push(IERC20(_rewardToken[i]));
+            accTokenPerShare.push(0);
 
-                uint8 _decimals = _getDecimals(_rewardToken[i]);
-                uint256 _formated = TOKEN_PER_BLOCK * (10**(_decimals));
-                decimalTokenPerBlock.push(_formated);
-            }
-
+            uint8 _decimals = _getDecimals(_rewardToken[i]);
+            uint256 _formated = TOKEN_PER_BLOCK * (10**(_decimals));
+            decimalTokenPerBlock.push(_formated);
+        }
+        stakedTokenRate = _stakedTokenRate;
         factory = msg.sender;
         bonusMultiplier = _bonusMultiplier;
         startBlock = _startBlock;
         allocPoint = _allocPoint;
         bonusEndBlock = _bonusEndBlock;
+        lockDuration = _lockDuration;
 
-        lastRewardBlock =
-            block.number > startBlock ? block.number : startBlock; 
+        lastRewardBlock = block.number > startBlock ? block.number : startBlock;
 
         uint256 totalAllocPoint = IPoolFactory(factory).totalAllocPoint();
         totalAllocPoint = totalAllocPoint + _allocPoint;
         IPoolFactory(factory).setTotalAllocPoint(totalAllocPoint);
-
     }
 
     /**
      * @notice Update the given pool's token allocation point. Can only be called by the owner.
      */
-    function set(
-        uint256 _allocPoint
-    ) public isMod {
+    function set(uint256 _allocPoint) public isMod {
         uint256 totalAllocPoint = IPoolFactory(factory).totalAllocPoint();
         totalAllocPoint = totalAllocPoint - allocPoint + _allocPoint;
         allocPoint = _allocPoint;
@@ -190,7 +189,7 @@ contract AllocationPool is
         if (_to <= bonusEndBlock) {
             return (_to - _from) * bonusMultiplier;
         } else if (_from >= bonusEndBlock) {
-            return _to -_from;
+            return _to - _from;
         } else {
             return
                 (bonusEndBlock - _from) * bonusMultiplier + _to - bonusEndBlock;
@@ -200,9 +199,10 @@ contract AllocationPool is
     function getUserInfo(address _account)
         external
         view
-        returns (UserInfo memory) {
-            return userInfo[_account];
-        }
+        returns (UserInfo memory)
+    {
+        return userInfo[_account];
+    }
 
     /**
      * @notice View function to see pending TOKENs on frontend.
@@ -214,29 +214,33 @@ contract AllocationPool is
         returns (uint256[] memory rewards)
     {
         uint256 totalAllocPoint = IPoolFactory(factory).totalAllocPoint();
-        UserInfo storage user = userInfo[_user];
+        UserInfo memory user = userInfo[_user];
         uint256[] memory amount = user.amount;
         uint256[] memory rewardDebt = user.rewardDebt;
         rewards = new uint256[](lpToken.length);
-        if(amount.length == 0 ) {
+        if (amount.length == 0) {
             amount = new uint256[](lpToken.length);
             rewardDebt = new uint256[](lpToken.length);
         }
         uint256[] memory _accTokenPerShare = accTokenPerShare;
         uint256[] memory lpSupply = new uint256[](lpToken.length);
 
-        uint256 multiplier =
-                getMultiplier(lastRewardBlock, block.number);
-        for(uint256 i=0; i<lpSupply.length; i++) {
+        uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
+        for (uint256 i = 0; i < lpSupply.length; i++) {
             lpSupply[i] = lpToken[i].balanceOf(address(this));
 
             if (block.number > lastRewardBlock && lpSupply[i] != 0) {
-                uint256 tokenReward =
-                    (multiplier * decimalTokenPerBlock[i] * allocPoint)
-                        / totalAllocPoint;
-                
-                _accTokenPerShare[i] = _accTokenPerShare[i] + (tokenReward * 1e12 / lpSupply[i]);
-                rewards[i] = _accTokenPerShare[i] / 1e12 * amount[i] - rewardDebt[i]; 
+                uint256 tokenReward = (multiplier *
+                    decimalTokenPerBlock[i] *
+                    allocPoint) / totalAllocPoint;
+
+                _accTokenPerShare[i] =
+                    _accTokenPerShare[i] +
+                    ((tokenReward * 1e12) / lpSupply[i]);
+                rewards[i] =
+                    (_accTokenPerShare[i] / 1e12) *
+                    amount[i] -
+                    rewardDebt[i];
             }
         }
     }
@@ -245,25 +249,25 @@ contract AllocationPool is
      * @notice Update reward variables of the given pool to be up-to-date.
      */
     function updatePool() public whenNotPaused {
-        
         if (block.number <= lastRewardBlock) {
             return;
         }
         uint256 totalAllocPoint = IPoolFactory(factory).totalAllocPoint();
 
-        for(uint256 i=0; i<lpToken.length; i++) {
+        for (uint256 i = 0; i < lpToken.length; i++) {
             uint256 lpSupply = lpToken[i].balanceOf(address(this));
             if (lpSupply == 0) {
                 continue;
             }
             uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
-            uint256 tokenReward =
-                (multiplier * decimalTokenPerBlock[i] * allocPoint)
-                        / totalAllocPoint;
-            accTokenPerShare[i] = accTokenPerShare[i] + (tokenReward * 1e12 / lpSupply);
+            uint256 tokenReward = (multiplier *
+                decimalTokenPerBlock[i] *
+                allocPoint) / totalAllocPoint;
+            accTokenPerShare[i] =
+                accTokenPerShare[i] +
+                ((tokenReward * 1e12) / lpSupply);
         }
         lastRewardBlock = block.number;
-
     }
 
     /**
@@ -273,14 +277,20 @@ contract AllocationPool is
     function deposit(uint256[] memory _amounts) external whenNotPaused {
         UserInfo storage user = userInfo[msg.sender];
         updatePool();
-        if(user.amount.length == 0 ) {
+        if (user.amount.length == 0) {
             user.amount = new uint256[](lpToken.length);
             user.rewardDebt = new uint256[](lpToken.length);
         }
-        for(uint256 i=0; i<lpToken.length; i++) {
+        uint256 shared_times = _amounts[0] / stakedTokenRate[0];
+        for (uint256 i = 0; i < lpToken.length; i++) {
+            require(
+                stakedTokenRate[i] * shared_times == _amounts[i],
+                "AllocationPool: staked tokens not meet staked token rate"
+            );
             if (user.amount[i] > 0) {
-                uint256 pending =
-                    user.amount[i] * accTokenPerShare[i] / 1e12 - user.rewardDebt[i];
+                uint256 pending = (user.amount[i] * accTokenPerShare[i]) /
+                    1e12 -
+                    user.rewardDebt[i];
                 safeTokenTransfer(rewardToken[i], msg.sender, pending);
             }
             lpToken[i].safeTransferFrom(
@@ -289,8 +299,9 @@ contract AllocationPool is
                 _amounts[i]
             );
             user.amount[i] = user.amount[i] + _amounts[i];
-            user.rewardDebt[i] = user.amount[i] * accTokenPerShare[i] / 1e12;
+            user.rewardDebt[i] = (user.amount[i] * accTokenPerShare[i]) / 1e12;
         }
+        user.joinTime = block.timestamp;
         emit Deposit(msg.sender, _amounts);
     }
 
@@ -300,18 +311,26 @@ contract AllocationPool is
      */
     function withdraw(uint256[] memory _amounts) external whenNotPaused {
         UserInfo storage user = userInfo[msg.sender];
+        require(
+            block.timestamp >= user.joinTime + lockDuration,
+            "AllocationStakingPool: still locked"
+        );
         updatePool();
-        if(user.amount.length == 0 ) {
+        if (user.amount.length == 0) {
             user.amount = new uint256[](lpToken.length);
             user.rewardDebt = new uint256[](lpToken.length);
         }
-        for(uint256 i=0; i<lpToken.length; i++) {
-            require(user.amount[i] >= _amounts[i], "AllocationPool: withdraw not good");
-            uint256 pending =
-                    user.amount[i] * accTokenPerShare[i] / 1e12 - user.rewardDebt[i];
+        for (uint256 i = 0; i < lpToken.length; i++) {
+            require(
+                user.amount[i] >= _amounts[i],
+                "AllocationPool: withdraw not good"
+            );
+            uint256 pending = (user.amount[i] * accTokenPerShare[i]) /
+                1e12 -
+                user.rewardDebt[i];
             safeTokenTransfer(rewardToken[i], msg.sender, pending);
             user.amount[i] = user.amount[i] - _amounts[i];
-            user.rewardDebt[i] = user.amount[i] * accTokenPerShare[i] / 1e12;
+            user.rewardDebt[i] = (user.amount[i] * accTokenPerShare[i]) / 1e12;
             lpToken[i].safeTransfer(address(msg.sender), _amounts[i]);
         }
         emit Withdraw(msg.sender, _amounts);
@@ -322,8 +341,8 @@ contract AllocationPool is
      */
     function emergencyWithdraw() external whenNotPaused {
         UserInfo storage user = userInfo[msg.sender];
-        if(user.amount.length == 0 ) return;
-        for(uint256 i=0; i<lpToken.length; i++) {
+        if (user.amount.length == 0) return;
+        for (uint256 i = 0; i < lpToken.length; i++) {
             lpToken[i].safeTransfer(address(msg.sender), user.amount[i]);
             user.amount[i] = 0;
             user.rewardDebt[i] = 0;
@@ -335,7 +354,11 @@ contract AllocationPool is
     /**
      * @notice Safe token transfer function, just in case if rounding error causes pool to not have enough TOKENs.
      */
-    function safeTokenTransfer(IERC20 token, address _to, uint256 _amount) internal {
+    function safeTokenTransfer(
+        IERC20 token,
+        address _to,
+        uint256 _amount
+    ) internal {
         uint256 tokenBal = token.balanceOf(address(this));
         if (_amount > tokenBal) {
             token.transfer(_to, tokenBal);
@@ -344,23 +367,29 @@ contract AllocationPool is
         }
     }
 
-    function _getDecimals(address _token) internal view returns(uint8) {
+    function _getDecimals(address _token) internal view returns (uint8) {
         uint8 _decimals = _callOptionalReturn(
-                            IERC20Metadata(_token), 
-                            abi.encodeWithSelector(IERC20Metadata(_token).decimals.selector
-                        ));
+            IERC20Metadata(_token),
+            abi.encodeWithSelector(IERC20Metadata(_token).decimals.selector)
+        );
         require(_decimals > 0, "AllocationPool: invalid decimals");
         return _decimals;
     }
 
-    function _callOptionalReturn(IERC20 token, bytes memory data) private view returns (uint8){
+    function _callOptionalReturn(IERC20 token, bytes memory data)
+        private
+        view
+        returns (uint8)
+    {
         uint8 decimals = 0;
-        bytes memory returndata = address(token).functionStaticCall(data, "AllocationPool: not ERC20");
+        bytes memory returndata = address(token).functionStaticCall(
+            data,
+            "AllocationPool: not ERC20"
+        );
         if (returndata.length > 0) {
             decimals = abi.decode(returndata, (uint8));
         }
 
         return decimals;
     }
-
 }
