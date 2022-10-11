@@ -350,10 +350,9 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
 
         rewards = new uint256[](stakingData.balance.length);
         for (uint256 i = 0; i < stakingData.balance.length; i++) {
-            uint256 pendingReward = (((stakingData.balance[i] *
+            uint256 pendingReward = ((stakingData.balance[i] *
                 stakedTimeInSeconds *
-                _stakedTokenRate[i] *
-                APR) / ONE_YEAR_IN_SECONDS) / sum) / 1e20;
+                APR) / ONE_YEAR_IN_SECONDS) / 1e20;
             rewards[i] = stakingData.reward[i] + pendingReward;
         }
     }

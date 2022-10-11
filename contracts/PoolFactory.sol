@@ -36,16 +36,17 @@ contract PoolFactory is IPoolFactory, AccessControl {
                 uint256 lockDuration,
                 address rewardDistributor
             ) {
+                LinerParams memory linearParam = linerParameters;
                 return (
-                    linerParameters.stakeToken,
-                    linerParameters.saleToken,
-                    linerParameters.stakedTokenRate,
-                    linerParameters.APR,
-                    linerParameters.cap,
-                    linerParameters.startTimeJoin,
-                    linerParameters.endTimeJoin,
-                    linerParameters.lockDuration,
-                    linerParameters.rewardDistributor
+                    linearParam.stakeToken,
+                    linearParam.saleToken,
+                    linearParam.stakedTokenRate,
+                    linearParam.APR,
+                    linearParam.cap,
+                    linearParam.startTimeJoin,
+                    linearParam.endTimeJoin,
+                    linearParam.lockDuration,
+                    linearParam.rewardDistributor
                 );
             }
 
@@ -63,15 +64,16 @@ contract PoolFactory is IPoolFactory, AccessControl {
                 uint256  bonusEndBlock,
                 uint256 lockDuration
             ) {
+                AllocationParams memory alloParam = allocationParameters;
                 return (
-                    allocationParameters.lpToken,
-                    allocationParameters.rewardToken,
-                    allocationParameters.stakedTokenRate,
-                    allocationParameters.bonusMultiplier,
-                    allocationParameters.startBlock,
-                    allocationParameters.allocPoint,
-                    allocationParameters.bonusEndBlock,
-                    allocationParameters.lockDuration
+                    alloParam.lpToken,
+                    alloParam.rewardToken,
+                    alloParam.stakedTokenRate,
+                    alloParam.bonusMultiplier,
+                    alloParam.startBlock,
+                    alloParam.allocPoint,
+                    alloParam.bonusEndBlock,
+                    alloParam.lockDuration
                 );
             }
 
