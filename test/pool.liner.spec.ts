@@ -46,6 +46,7 @@ describe("Pool", () => {
     const poolAddress = await poolFactory.callStatic.createLinerPool(
       [mintableToken.address],
       [fixedToken.address],
+      ["1"],
       toWei("10"),
       0,
       (await time.latest()).toNumber(),
@@ -56,6 +57,7 @@ describe("Pool", () => {
     await poolFactory.createLinerPool(
       [mintableToken.address],
       [fixedToken.address],
+      ["1"],
       toWei("10"),
       0,
       (await time.latest()).toNumber(),
@@ -71,6 +73,7 @@ describe("Pool", () => {
     const poolCap5Address = await poolFactory.callStatic.createLinerPool(
       [mintableToken.address],
       [fixedToken.address],
+      ["1"],
       toWei("10"),
       toWei("5"),
       (await time.latest()).toNumber(),
@@ -81,6 +84,7 @@ describe("Pool", () => {
     await poolFactory.createLinerPool(
       [mintableToken.address],
       [fixedToken.address],
+      ["1"],
       toWei("10"),
       toWei("5"),
       (await time.latest()).toNumber(),
@@ -96,6 +100,7 @@ describe("Pool", () => {
     const poolZeroAddress = await poolFactory.callStatic.createLinerPool(
       [mintableToken.address],
       [fixedToken.address],
+      ["1"],
       toWei("10"),
       0,
       (await time.latest()).toNumber(),
@@ -106,6 +111,7 @@ describe("Pool", () => {
     await poolFactory.createLinerPool(
       [mintableToken.address],
       [fixedToken.address],
+      ["1"],
       toWei("10"),
       0,
       (await time.latest()).toNumber(),
@@ -116,6 +122,7 @@ describe("Pool", () => {
     const poolFutureAddress = await poolFactory.callStatic.createLinerPool(
       [mintableToken.address],
       [fixedToken.address],
+      ["1"],
       toWei("10"),
       0,
       (await time.latest()).toNumber() + 3600,
@@ -126,6 +133,7 @@ describe("Pool", () => {
     await poolFactory.createLinerPool(
       [mintableToken.address],
       [fixedToken.address],
+      ["1"],
       toWei("10"),
       0,
       (await time.latest()).toNumber() + 3600,

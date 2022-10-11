@@ -28,6 +28,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
             returns (
                 address[] memory stakeToken,
                 address[] memory saleToken,
+                uint256[] memory stakedTokenRate,
                 uint256 APR,
                 uint256 cap,
                 uint256 startTimeJoin,
@@ -38,6 +39,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
                 return (
                     linerParameters.stakeToken,
                     linerParameters.saleToken,
+                    linerParameters.stakedTokenRate,
                     linerParameters.APR,
                     linerParameters.cap,
                     linerParameters.startTimeJoin,
@@ -110,6 +112,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
     function createLinerPool(
         address[] memory _stakeToken,
         address[] memory _saleToken,
+        uint256[] memory _stakedTokenRate,
         uint256 _APR,
         uint256 _cap,
         uint256 _startTimeJoin,
@@ -121,6 +124,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
         poolAddress = _deployLiner(
             _stakeToken,
             _saleToken,
+            _stakedTokenRate,
             _APR,
             _cap,
             _startTimeJoin,
@@ -160,6 +164,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
     function _deployLiner(
         address[] memory _stakeToken,
         address[] memory _saleToken,
+        uint256[] memory _stakedTokenRate,
         uint256 _APR,
         uint256 _cap,
         uint256 _startTimeJoin,
@@ -170,6 +175,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
         linerParameters = LinerParams({
             stakeToken: _stakeToken,
             saleToken: _saleToken,
+            stakedTokenRate: _stakedTokenRate,
             APR: _APR,
             cap: _cap,
             startTimeJoin: _startTimeJoin,

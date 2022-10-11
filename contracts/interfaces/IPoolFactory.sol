@@ -24,6 +24,7 @@ interface IPoolFactory {
     struct LinerParams {
         address[] stakeToken;
         address[] saleToken;
+        uint256[] stakedTokenRate;
         uint256  APR;
         uint256  cap;
         uint256  startTimeJoin;
@@ -50,6 +51,7 @@ interface IPoolFactory {
         returns (
             address[] memory stakeToken,
             address[] memory saleToken,
+            uint256[] memory stakedTokenRate,
             uint256 APR,
             uint256 cap,
             uint256 startTimeJoin,
