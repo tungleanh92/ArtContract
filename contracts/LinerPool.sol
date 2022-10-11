@@ -414,7 +414,7 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
     {
         LinearStakingData storage stakingData = linearStakingData[account];
         uint256[] memory  _stakedTokenRate = stakedTokenRate; 
-        uint256 shared_times = _amounts[0] / _stakedTokenRate[0];
+        uint256 shared_times = _amount[0] / _stakedTokenRate[0];
         require(
             _amount.length == linearAcceptedToken.length,
             "LinearStakingPool: inffuse amounts"
@@ -443,7 +443,7 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
 
         for (uint256 i = 0; i < _amount.length; i++) {
             require(
-                _stakedTokenRate[i] * shared_times == _amounts[i],
+                _stakedTokenRate[i] * shared_times == _amount[i],
                 "LinearPool: staked tokens not meet staked token rate"
             );
             stakingData.balance[i] += _amount[i];

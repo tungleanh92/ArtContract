@@ -26,6 +26,7 @@ describe("Pool", () => {
   let poolCap5: LinearPool;
   let poolZero: LinearPool;
   let poolFuture: LinearPool;
+  let pool2Token: LinearPool;
 
   before("create fixture loader", async () => {
     wallets = await (ethers as any).getSigners();
@@ -95,6 +96,33 @@ describe("Pool", () => {
     poolCap5 = (await ethers.getContractAt(
       "LinearPool",
       poolCap5Address,
+    )) as LinearPool;
+
+    const pool2TokenAddress = await poolFactory.callStatic.createLinerPool(
+      [mintableToken.address, mintableToken.address],
+      [fixedToken.address, fixedToken.address],
+      [toWei("1"), toWei("2")],
+      toWei("10"),
+      toWei("5"),
+      (await time.latest()).toNumber(),
+      duration.hours("1"),
+      distributor.address,
+    );
+
+    await poolFactory.createLinerPool(
+      [mintableToken.address, mintableToken.address],
+      [fixedToken.address, fixedToken.address],
+      [toWei("1"), toWei("2")],
+      toWei("10"),
+      toWei("5"),
+      (await time.latest()).toNumber(),
+      duration.hours("1"),
+      distributor.address,
+    );
+
+    pool2Token = (await ethers.getContractAt(
+      "LinearPool",
+      pool2TokenAddress,
     )) as LinearPool;
 
     const poolZeroAddress = await poolFactory.callStatic.createLinerPool(
@@ -209,6 +237,12 @@ describe("Pool", () => {
 
       await expect(
         pool.connect(account1).linearDeposit([toWei("5"), toWei("1")])
+      ).to.be.revertedWith(
+        "LinearStakingPool: inffuse amounts"
+      );
+
+      await expect(
+        pool2Token.connect(account1).linearDeposit([toWei("2")])
       ).to.be.revertedWith(
         "LinearStakingPool: inffuse amounts"
       );
@@ -405,6 +439,8 @@ describe("Pool", () => {
       ).to.be.revertedWith(
         "LinearStakingPool: invalid distributor"
       );
+
+      
     })
   });
 
