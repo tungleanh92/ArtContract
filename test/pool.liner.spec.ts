@@ -242,12 +242,6 @@ describe("Pool", () => {
       );
 
       await expect(
-        pool2Token.connect(account1).linearDeposit([toWei("2")])
-      ).to.be.revertedWith(
-        "LinearStakingPool: inffuse amounts"
-      );
-
-      await expect(
         poolFuture.connect(account1).linearDeposit([toWei("5")])
       ).to.be.revertedWith(
         "LinearStakingPool: not started yet"
@@ -486,5 +480,15 @@ describe("Pool", () => {
 
       expect(amountBefore.sub(amountAfter).toString()).to.be.equal(toWei("5"));
     })
+
+    it("Stake inffuse amounts", async () => {
+
+      await expect(
+        pool2Token.connect(account1).linearDeposit([toWei("2")])
+      ).to.be.revertedWith(
+        "LinearStakingPool: inffuse amounts"
+      );
+    })
   })
+
 })
