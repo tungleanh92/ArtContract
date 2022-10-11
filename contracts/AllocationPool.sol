@@ -278,7 +278,7 @@ contract AllocationPool is PausableUpgradeable {
      * @notice Deposit LP tokens to contract for token allocation.
      * @param _amounts amounts of token user stake into pool
      */
-    function deposit(uint256[] memory _amounts) external whenNotPaused {
+    function deposit(uint256[] calldata _amounts) external whenNotPaused {
         UserInfo storage user = userInfo[msg.sender];
         updatePool();
         if (user.amount.length == 0) {
@@ -314,7 +314,7 @@ contract AllocationPool is PausableUpgradeable {
      * @notice Withdraw LP tokens from contract.
      * @param _amounts amounts of token user stake into pool
      */
-    function withdraw(uint256[] memory _amounts) external whenNotPaused {
+    function withdraw(uint256[] calldata _amounts) external whenNotPaused {
         UserInfo storage user = userInfo[msg.sender];
         if(lockDuration > 0) {
             require(

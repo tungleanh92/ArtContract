@@ -112,9 +112,9 @@ contract PoolFactory is IPoolFactory, AccessControl {
 
 
     function createLinerPool(
-        address[] memory _stakeToken,
-        address[] memory _saleToken,
-        uint256[] memory _stakedTokenRate,
+        address[] calldata _stakeToken,
+        address[] calldata _saleToken,
+        uint256[] calldata _stakedTokenRate,
         uint256 _APR,
         uint256 _cap,
         uint256 _startTimeJoin,
@@ -138,9 +138,9 @@ contract PoolFactory is IPoolFactory, AccessControl {
     }
 
     function createAllocationPool(
-        address[] memory _lpToken,
-        address[] memory _rewardToken,
-        uint256[] memory _stakedTokenRate,
+        address[] calldata _lpToken,
+        address[] calldata _rewardToken,
+        uint256[] calldata _stakedTokenRate,
         uint256 _bonusMultiplier,
         uint256  _startBlock,
         uint256  _allocPoint,
@@ -164,9 +164,9 @@ contract PoolFactory is IPoolFactory, AccessControl {
     }
 
     function _deployLiner(
-        address[] memory _stakeToken,
-        address[] memory _saleToken,
-        uint256[] memory _stakedTokenRate,
+        address[] calldata _stakeToken,
+        address[] calldata _saleToken,
+        uint256[] calldata _stakedTokenRate,
         uint256 _APR,
         uint256 _cap,
         uint256 _startTimeJoin,
@@ -194,9 +194,9 @@ contract PoolFactory is IPoolFactory, AccessControl {
     }
 
     function _deployAllocation(
-        address[] memory _lpToken,
-        address[] memory _rewardToken,
-        uint256[] memory _stakedTokenRate,    
+        address[] calldata _lpToken,
+        address[] calldata _rewardToken,
+        uint256[] calldata _stakedTokenRate,    
         uint256 _bonusMultiplier,
         uint256  _startBlock,
         uint256  _allocPoint,
