@@ -28,6 +28,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
             returns (
                 address[] memory stakeToken,
                 address[] memory saleToken,
+                uint256[] memory stakedTokenRate,
                 uint256 APR,
                 uint256 cap,
                 uint256 startTimeJoin,
@@ -35,15 +36,17 @@ contract PoolFactory is IPoolFactory, AccessControl {
                 uint256 lockDuration,
                 address rewardDistributor
             ) {
+                LinerParams memory linearParam = linerParameters;
                 return (
-                    linerParameters.stakeToken,
-                    linerParameters.saleToken,
-                    linerParameters.APR,
-                    linerParameters.cap,
-                    linerParameters.startTimeJoin,
-                    linerParameters.endTimeJoin,
-                    linerParameters.lockDuration,
-                    linerParameters.rewardDistributor
+                    linearParam.stakeToken,
+                    linearParam.saleToken,
+                    linearParam.stakedTokenRate,
+                    linearParam.APR,
+                    linearParam.cap,
+                    linearParam.startTimeJoin,
+                    linearParam.endTimeJoin,
+                    linearParam.lockDuration,
+                    linearParam.rewardDistributor
                 );
             }
 
@@ -61,15 +64,16 @@ contract PoolFactory is IPoolFactory, AccessControl {
                 uint256  bonusEndBlock,
                 uint256 lockDuration
             ) {
+                AllocationParams memory alloParam = allocationParameters;
                 return (
-                    allocationParameters.lpToken,
-                    allocationParameters.rewardToken,
-                    allocationParameters.stakedTokenRate,
-                    allocationParameters.bonusMultiplier,
-                    allocationParameters.startBlock,
-                    allocationParameters.allocPoint,
-                    allocationParameters.bonusEndBlock,
-                    allocationParameters.lockDuration
+                    alloParam.lpToken,
+                    alloParam.rewardToken,
+                    alloParam.stakedTokenRate,
+                    alloParam.bonusMultiplier,
+                    alloParam.startBlock,
+                    alloParam.allocPoint,
+                    alloParam.bonusEndBlock,
+                    alloParam.lockDuration
                 );
             }
 
@@ -108,8 +112,9 @@ contract PoolFactory is IPoolFactory, AccessControl {
 
 
     function createLinerPool(
-        address[] memory _stakeToken,
-        address[] memory _saleToken,
+        address[] calldata _stakeToken,
+        address[] calldata _saleToken,
+        uint256[] calldata _stakedTokenRate,
         uint256 _APR,
         uint256 _cap,
         uint256 _startTimeJoin,
@@ -121,6 +126,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
         poolAddress = _deployLiner(
             _stakeToken,
             _saleToken,
+            _stakedTokenRate,
             _APR,
             _cap,
             _startTimeJoin,
@@ -132,9 +138,9 @@ contract PoolFactory is IPoolFactory, AccessControl {
     }
 
     function createAllocationPool(
-        address[] memory _lpToken,
-        address[] memory _rewardToken,
-        uint256[] memory _stakedTokenRate,
+        address[] calldata _lpToken,
+        address[] calldata _rewardToken,
+        uint256[] calldata _stakedTokenRate,
         uint256 _bonusMultiplier,
         uint256  _startBlock,
         uint256  _allocPoint,
@@ -158,8 +164,9 @@ contract PoolFactory is IPoolFactory, AccessControl {
     }
 
     function _deployLiner(
-        address[] memory _stakeToken,
-        address[] memory _saleToken,
+        address[] calldata _stakeToken,
+        address[] calldata _saleToken,
+        uint256[] calldata _stakedTokenRate,
         uint256 _APR,
         uint256 _cap,
         uint256 _startTimeJoin,
@@ -170,6 +177,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
         linerParameters = LinerParams({
             stakeToken: _stakeToken,
             saleToken: _saleToken,
+            stakedTokenRate: _stakedTokenRate,
             APR: _APR,
             cap: _cap,
             startTimeJoin: _startTimeJoin,
@@ -186,9 +194,9 @@ contract PoolFactory is IPoolFactory, AccessControl {
     }
 
     function _deployAllocation(
-        address[] memory _lpToken,
-        address[] memory _rewardToken,
-        uint256[] memory _stakedTokenRate,    
+        address[] calldata _lpToken,
+        address[] calldata _rewardToken,
+        uint256[] calldata _stakedTokenRate,    
         uint256 _bonusMultiplier,
         uint256  _startBlock,
         uint256  _allocPoint,

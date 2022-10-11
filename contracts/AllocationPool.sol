@@ -278,17 +278,18 @@ contract AllocationPool is PausableUpgradeable {
      * @notice Deposit LP tokens to contract for token allocation.
      * @param _amounts amounts of token user stake into pool
      */
-    function deposit(uint256[] memory _amounts) external whenNotPaused {
+    function deposit(uint256[] calldata _amounts) external whenNotPaused {
         UserInfo storage user = userInfo[msg.sender];
         updatePool();
         if (user.amount.length == 0) {
             user.amount = new uint256[](lpToken.length);
             user.rewardDebt = new uint256[](lpToken.length);
         }
-        uint256 shared_times = _amounts[0] / stakedTokenRate[0];
+        uint256[] memory  _stakedTokenRate = stakedTokenRate; 
+        uint256 shared_times = _amounts[0] / _stakedTokenRate[0];
         for (uint256 i = 0; i < lpToken.length; i++) {
             require(
-                stakedTokenRate[i] * shared_times == _amounts[i],
+                _stakedTokenRate[i] * shared_times == _amounts[i],
                 "AllocationPool: staked tokens not meet staked token rate"
             );
             if (user.amount[i] > 0) {
@@ -313,7 +314,7 @@ contract AllocationPool is PausableUpgradeable {
      * @notice Withdraw LP tokens from contract.
      * @param _amounts amounts of token user stake into pool
      */
-    function withdraw(uint256[] memory _amounts) external whenNotPaused {
+    function withdraw(uint256[] calldata _amounts) external whenNotPaused {
         UserInfo storage user = userInfo[msg.sender];
         if(lockDuration > 0) {
             require(
