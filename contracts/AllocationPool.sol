@@ -285,10 +285,11 @@ contract AllocationPool is PausableUpgradeable {
             user.amount = new uint256[](lpToken.length);
             user.rewardDebt = new uint256[](lpToken.length);
         }
-        uint256 shared_times = _amounts[0] / stakedTokenRate[0];
+        uint256[] memory  _stakedTokenRate = stakedTokenRate; 
+        uint256 shared_times = _amounts[0] / _stakedTokenRate[0];
         for (uint256 i = 0; i < lpToken.length; i++) {
             require(
-                stakedTokenRate[i] * shared_times == _amounts[i],
+                _stakedTokenRate[i] * shared_times == _amounts[i],
                 "AllocationPool: staked tokens not meet staked token rate"
             );
             if (user.amount[i] > 0) {
