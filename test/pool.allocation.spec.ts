@@ -1,6 +1,6 @@
 import web3 from "web3";
 import { expect } from "chai";
-import { Wallet } from "ethers";
+import { BigNumber, Wallet } from "ethers";
 import { ethers, waffle } from "hardhat";
 import { fixture } from "./utils/fixture";
 import { MintableToken } from "../typechain/MintableToken";
@@ -63,7 +63,6 @@ describe("Pool", () => {
         ["1"],
         "100",
         "100",
-        "100",
         "1000",
         time.duration.hours("1"),
       );
@@ -72,7 +71,6 @@ describe("Pool", () => {
         [mintableToken.address],
         [distributeToken.address],
         ["1"],
-        "100",
         "100",
         "100",
         "1000",
@@ -114,9 +112,8 @@ describe("Pool", () => {
         ["1"],
         "100",
         "100",
-        "100",
         "1000",
-        time.duration.hours("1"),
+        0,
       );
 
       await poolFactory.createAllocationPool(
@@ -125,9 +122,8 @@ describe("Pool", () => {
         ["1"],
         "100",
         "100",
-        "100",
         "1000",
-        time.duration.hours("1"),
+        0,
       );
 
       pool = (await ethers.getContractAt(
@@ -157,12 +153,11 @@ describe("Pool", () => {
       expect(await distributeToken.balanceOf(account1.address)).to.equal("0");
       await time.advanceBlockTo(100);
 
-      await pool.connect(account1).deposit(["0"]); // block 101
-
+      await pool.connect(account1).claimRewards(); // block 101
       expect(await distributeToken.balanceOf(account1.address)).to.equal(toWei("1000"));
 
       await time.advanceBlockTo(104);
-      await pool.connect(account1).deposit(["0"]); // block 105
+      await pool.connect(account1).claimRewards(); // block 105
 
 
       expect(await distributeToken.balanceOf(account1.address)).to.equal(toWei("5000"));
@@ -178,7 +173,6 @@ describe("Pool", () => {
         ["1"],
         "100",
         "100",
-        "100",
         "1000",
         time.duration.seconds("1"),
       );
@@ -187,7 +181,6 @@ describe("Pool", () => {
         [mintableToken.address],
         [distributeToken.address],
         ["1"],
-        "100",
         "100",
         "100",
         "1000",
@@ -223,8 +216,9 @@ describe("Pool", () => {
 
       await time.advanceBlockTo(219);
       await pool.connect(account1).deposit(["10"]); // block 220
-
-      expect(await distributeToken.balanceOf(account1.address)).to.equal("5666666666666666666666");
+      
+      let acc1Rewards = await (await pool.pendingToken(account1.address)).map(e => e.toString())
+      expect(acc1Rewards).to.deep.equal(["5666666666666666666666"]);
       expect(await distributeToken.balanceOf(account2.address)).to.equal("0");
       expect(await distributeToken.balanceOf(account3.address)).to.equal("0");
 
@@ -232,8 +226,9 @@ describe("Pool", () => {
       //   user 2 should have: (4*2/3*1000 + 2*2/6*1000 + 10*2/7*1000) * 10^18 = 6190476190476190476190
       await time.advanceBlockTo(229);
       await pool.connect(account2).withdraw(["5"]);
-      expect(await distributeToken.balanceOf(account1.address)).to.equal("5666666666666666666666");
-      expect(await distributeToken.balanceOf(account2.address)).to.equal("6190476190476190476190");
+      let acc2Rewards = await (await pool.pendingToken(account2.address)).map(e => e.toString())
+      expect(acc1Rewards).to.deep.equal(["5666666666666666666666"]);
+      expect(acc2Rewards).to.deep.equal(["6190476190476190476190"]);
       expect(await distributeToken.balanceOf(account3.address)).to.equal("0");
 
       // user 1 withdraws 20 LPs at block 240.
@@ -251,12 +246,16 @@ describe("Pool", () => {
       await pool.connect(account3).withdraw(["30"]);
 
 
+      acc1Rewards = await (await pool.pendingToken(account1.address)).map(e => e.toString())
+      acc2Rewards = await (await pool.pendingToken(account2.address)).map(e => e.toString())
+      let acc3Rewards = await (await pool.pendingToken(account3.address)).map(e => e.toString())
+
       // user 1 should have: (5666666666666666666666 + 10*2/7*1000 + 10*2/6.5*1000) * 10^18 ~ 11600732600732600732600
-      expect(await distributeToken.balanceOf(account1.address)).to.equal("11600732600732600732600");
+      expect(acc1Rewards).to.deep.equal(["11600732600732600732600"]);
       // user 2 should have: (6190476190476190476190 + 10*1.5/6.5 * 1000 + 10*1.5/4.5*1000 )* 10^18 ~ 11831501831501831501831
-      expect(await distributeToken.balanceOf(account2.address)).to.equal("11831501831501831501831");
+      expect(acc2Rewards).to.deep.equal(["11831501831501831501831"]);
       // user 3 should have: (2*3/6*1000 + 10*3/7*1000 + 10*3/6.5*1000 + 10*3/4.5*1000 + 10*1000) * 10^18 = 26567765567765567765568
-      expect(await distributeToken.balanceOf(account3.address)).to.equal("26567765567765567765568");
+      expect(acc3Rewards).to.deep.equal(["26567765567765567765568"]);
 
       // All of them should have 1000 LPs back.
 
@@ -265,107 +264,12 @@ describe("Pool", () => {
       expect(await mintableToken.balanceOf(account3.address)).to.equal("1000");
     });
 
-    it("should give proper TOKENs allocation to each pool", async () => {
-
-      // deploy
-      const poolAddress = await poolFactory.callStatic.createAllocationPool(
-        [mintableToken.address],
-        [distributeToken.address],
-        ["1"],
-        "100",
-        "100",
-        "100",
-        "1000",
-        time.duration.hours("1"),
-      );
-
-      await poolFactory.createAllocationPool(
-        [mintableToken.address],
-        [distributeToken.address],
-        ["1"],
-        "100",
-        "100",
-        "100",
-        "1000",
-        time.duration.hours("1"),
-      );
-
-      pool = (await ethers.getContractAt(
-        "AllocationPool",
-        poolAddress,
-      )) as AllocationPool;
-
-      await mintableToken.connect(account1).approve(poolAddress, ethers.constants.MaxUint256);
-      await mintableToken.connect(account2).approve(poolAddress, ethers.constants.MaxUint256);
-      await mintableToken.connect(account3).approve(poolAddress, ethers.constants.MaxUint256);
-      await distributeToken.transfer(pool.address, toWei("1375000000"));
-
-      await expect(pool.withdraw(["0"])).to.not.be.reverted;
-      await expect(pool.pendingToken(account1.address)).to.not.be.reverted;
-
-      // 10 per block farming rate starting at block 300 with bonus until block 1000
-      // set alloctionPoint is 10
-      await pool.set(10);
-      // user 1 deposits 10 LPs at block 310
-      await time.advanceBlockTo(309)
-      await pool.connect(account1).deposit(["10"]);
-
-      await time.advanceBlockTo(319);
-      // Add LP2 to the pool with allocation 2 at block 320
-      const pool2Address = await poolFactory.callStatic.createAllocationPool(
-        [fixedToken.address],
-        [distributeToken2.address],
-        ["1"],
-        "100",
-        "100",
-        "20",
-        "1000",
-        time.duration.hours("1"),
-      );
-
-      await poolFactory.createAllocationPool(
-        [fixedToken.address],
-        [distributeToken2.address],
-        ["1"],
-        "100",
-        "100",
-        "20",
-        "1000",
-        time.duration.hours("1"),
-      );
-
-      const pool2 = (await ethers.getContractAt(
-        "AllocationPool",
-        pool2Address,
-      )) as AllocationPool;
-
-
-      // user 1 should have 10*1000/3 * 10^18 pending reward
-      expect((await pool.pendingToken(account1.address))[0].toString()).to.equal("3333333333333333333330");
-      await distributeToken2.transfer(pool2.address, toWei("1375000000"));
-      await fixedToken.connect(account2).approve(pool2.address, ethers.constants.MaxUint256);
-      // user 2 deposits 5 LP2s at block 325
-      await time.advanceBlockTo(324);
-      await pool2.connect(account2).deposit(["5"]);
-
-      // user 1 should have 10*1000/3*10^18  + 5*1/3*1000* 10^18 pending reward
-      expect((await pool.pendingToken(account1.address))[0].toString()).to.equal("5000000000000000000000");
-
-      // At block 330. user 2 should get 5*2/3*1000 * 10^18. user 1 should get ~1666 more.
-      await time.advanceBlockTo(330);
-
-      expect((await pool2.pendingToken(account2.address))[0].toString()).to.equal("3333333333333333333330");
-      expect((await pool.pendingToken(account1.address))[0].toString()).to.equal("6666666666666666666660");
-
-    });
-
     it("Stake - revert case", async () => {
       const pool2Address = await poolFactory.callStatic.createAllocationPool(
         [mintableToken.address, fixedToken.address],
         [distributeToken.address, distributeToken2.address],
         [toWei("1"), toWei("2")],
         "100",
-        "100",
         "20",
         "1000",
         time.duration.hours("1"),
@@ -377,7 +281,6 @@ describe("Pool", () => {
         [toWei("1"), toWei("2")],
         "100",
         "100",
-        "20",
         "1000",
         time.duration.hours("1"),
       );
@@ -406,7 +309,6 @@ describe("Pool", () => {
         [distributeToken.address],
         ["1"],
         "100",
-        "100",
         "20",
         "1000",
         time.duration.hours("1"),
@@ -416,7 +318,6 @@ describe("Pool", () => {
         [mintableToken.address],
         [distributeToken.address],
         ["1"],
-        "100",
         "100",
         "20",
         "1000",
@@ -447,7 +348,6 @@ describe("Pool", () => {
         ["1"],
         "100",
         "100",
-        "100",
         "1000",
         time.duration.hours("1"),
       );
@@ -456,7 +356,6 @@ describe("Pool", () => {
         [mintableToken.address],
         [distributeToken.address],
         ["1"],
-        "100",
         "100",
         "100",
         "1000",
@@ -478,7 +377,6 @@ describe("Pool", () => {
         ["1", "2"],
         "100",
         "100",
-        "20",
         "1000",
         time.duration.hours("1"),
       );
@@ -489,7 +387,6 @@ describe("Pool", () => {
         ["1", "2"],
         "100",
         "100",
-        "20",
         "1000",
         time.duration.hours("1"),
       );
@@ -508,11 +405,12 @@ describe("Pool", () => {
       await time.advanceBlockTo(409);
       await pool2.connect(account1).deposit(["10", "20"]);
 
+      await time.increase(time.duration.hours("1"));
       await time.advanceBlockTo(419);
-      await pool2.connect(account1).deposit(["0", "0"]);
+      await pool2.connect(account1).claimRewards();
 
-      expect(await distributeToken.balanceOf(account1.address)).to.equal("555555555555555555555")
-      expect(await distributeToken2.balanceOf(account1.address)).to.equal("1111111111111111111110")
+      expect(await distributeToken.balanceOf(account1.address)).to.equal("3333333333333333333333")
+      expect(await distributeToken2.balanceOf(account1.address)).to.equal("6666666666666666666666")
 
     })
 
@@ -523,7 +421,6 @@ describe("Pool", () => {
         ["1"],
         "100",
         "100",
-        "100",
         "1000",
         time.duration.hours("1"),
       );
@@ -532,7 +429,6 @@ describe("Pool", () => {
         [mintableToken.address],
         [distributeToken.address],
         ["1"],
-        "100",
         "100",
         "100",
         "1000",
@@ -570,7 +466,6 @@ describe("Pool", () => {
         ["1"],
         "100",
         "100",
-        "100",
         "1000",
         time.duration.hours("1"),
       );
@@ -579,7 +474,6 @@ describe("Pool", () => {
         [mintableToken.address],
         [distributeToken.address],
         ["1"],
-        "100",
         "100",
         "100",
         "1000",
@@ -606,7 +500,7 @@ describe("Pool", () => {
       await pool.connect(account1).withdraw(["10"]);
 
       // reward should be 10 * 10 * 100 * 10^18 + 10 * 10 * 10^18
-      expect(await distributeToken.balanceOf(account1.address)).to.equal(toWei("1100"));
+      expect((await pool.pendingToken(account1.address))[0].toString()).to.equal(toWei("1100"));
       // deposit 10 at block 1100
       await time.advanceBlockTo(1099);
       await pool.connect(account1).deposit(["10"]);
@@ -614,7 +508,7 @@ describe("Pool", () => {
       await time.advanceBlockTo(1109);
       await pool.connect(account1).deposit(["0"]);
       // reward should be 10 * 10 * 10^18 + 1100 * 10^18
-      expect(await distributeToken.balanceOf(account1.address)).to.equal(toWei("1200"));
+      expect((await pool.pendingToken(account1.address))[0].toString()).to.equal(toWei("1200"));
     })
 
     it("should return contract reward balance if don't have enough", async () => {
@@ -625,7 +519,6 @@ describe("Pool", () => {
         ["1"],
         "100",
         "100",
-        "100",
         "1000",
         time.duration.hours("1"),
       );
@@ -634,7 +527,6 @@ describe("Pool", () => {
         [mintableToken.address],
         [distributeToken.address],
         ["1"],
-        "100",
         "100",
         "100",
         "1000",
@@ -654,8 +546,9 @@ describe("Pool", () => {
       await time.advanceBlockTo(1999);
       await pool.connect(account1).deposit(["10"]);
 
+      await time.increase(time.duration.hours("1"));
       await time.advanceBlockTo(2009);
-      await pool.connect(account1).deposit(["0"]);
+      await pool.connect(account1).claimRewards();
 
       expect(await distributeToken.balanceOf(account1.address)).to.equal("100000");
     })

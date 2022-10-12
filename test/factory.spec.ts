@@ -132,7 +132,6 @@ describe("Pool factory", () => {
         ["1"],
         "100",
         "100",
-        "20",
         "1000",
         time.duration.hours("1")
       )
@@ -145,7 +144,6 @@ describe("Pool factory", () => {
         ["1"],
         "100",
         "100",
-        "20",
         "1000",
         time.duration.hours("1")
       )
@@ -158,7 +156,6 @@ describe("Pool factory", () => {
         ["1"],
         "100",
         "100",
-        "20",
         "1000",
         time.duration.hours("1")
       )
@@ -170,7 +167,6 @@ describe("Pool factory", () => {
       ["1"],
       "100",
       "100",
-      "20",
       "1000",
       time.duration.hours("1"),
     );

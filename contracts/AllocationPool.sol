@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "hardhat/console.sol";
 
 contract AllocationPool is PausableUpgradeable {
     using SafeERC20 for IERC20;
@@ -167,6 +166,7 @@ contract AllocationPool is PausableUpgradeable {
      * @notice End Pool
      */
     function endPool() external isMod {
+        require(!isEnd, "AllocationPool: Pool already ended");
         updatePool();
         isEnd = true;
         emit PoolEnded();
