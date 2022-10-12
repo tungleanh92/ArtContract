@@ -3,8 +3,6 @@ pragma solidity 0.8.4;
 
 interface IPoolFactory {
 
-    function totalAllocPoint() external view returns(uint256);
-
     event LinerPoolCreated(
         address indexed LinerPoolAddress
     );
@@ -39,12 +37,10 @@ interface IPoolFactory {
         uint256[] stakedTokenRate;
         uint256 bonusMultiplier;
         uint256  startBlock;
-        uint256  allocPoint;
         uint256  bonusEndBlock;
         uint256  lockDuration;
     }
 
-    function setTotalAllocPoint(uint256 _newTotalAllocPoint) external;
 
     function getLinerParameters()
         external
@@ -68,7 +64,6 @@ interface IPoolFactory {
             uint256[] memory stakedTokenRate,
             uint256 bonusMultiplier,
             uint256  startBlock,
-            uint256  allocPoint,
             uint256  bonusEndBlock,
             uint256 lockDuration
         );

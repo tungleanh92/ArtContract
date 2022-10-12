@@ -17,10 +17,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
     LinerParams public linerParameters;
     AllocationParams public allocationParameters;
 
-    uint256 public override totalAllocPoint;
-
-    mapping(address => bool) allocationPools;
-
     function getLinerParameters() 
             external 
             view 
@@ -60,7 +56,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
                 uint256[] memory stakedTokenRate,
                 uint256 bonusMultiplier,
                 uint256  startBlock,
-                uint256  allocPoint,
                 uint256  bonusEndBlock,
                 uint256 lockDuration
             ) {
@@ -71,7 +66,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
                     alloParam.stakedTokenRate,
                     alloParam.bonusMultiplier,
                     alloParam.startBlock,
-                    alloParam.allocPoint,
                     alloParam.bonusEndBlock,
                     alloParam.lockDuration
                 );
@@ -99,15 +93,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
         allocationImpl = _allocImpl;
 
         emit ChangeAllocationImpl(address(_allocImpl));
-    }
-
-    function setTotalAllocPoint(uint256 _newTotalAllocPoint) external override {
-        require(
-            allocationPools[msg.sender],
-            "PoolFactory: not from our pool"
-        );
-
-        totalAllocPoint = _newTotalAllocPoint;
     }
 
 
@@ -143,7 +128,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
         uint256[] calldata _stakedTokenRate,
         uint256 _bonusMultiplier,
         uint256  _startBlock,
-        uint256  _allocPoint,
         uint256  _bonusEndBlock,
         uint256 _lockDuration
     ) external returns (address poolAddress) {
@@ -155,7 +139,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
             _stakedTokenRate,
             _bonusMultiplier,
             _startBlock,
-            _allocPoint,
             _bonusEndBlock,
             _lockDuration
         );
@@ -199,7 +182,6 @@ contract PoolFactory is IPoolFactory, AccessControl {
         uint256[] calldata _stakedTokenRate,    
         uint256 _bonusMultiplier,
         uint256  _startBlock,
-        uint256  _allocPoint,
         uint256  _bonusEndBlock,
         uint256 _lockDuration
     ) private returns(address poolAddress) {
@@ -209,13 +191,11 @@ contract PoolFactory is IPoolFactory, AccessControl {
             stakedTokenRate: _stakedTokenRate,
             bonusMultiplier: _bonusMultiplier, 
             startBlock: _startBlock, 
-            allocPoint: _allocPoint,
             bonusEndBlock: _bonusEndBlock ,
             lockDuration: _lockDuration
         });
 
         poolAddress = Clones.clone(address(allocationImpl));
-        allocationPools[poolAddress] = true;
 
         AllocationPool(poolAddress).initialize();
 
