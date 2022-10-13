@@ -55,7 +55,11 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
     event LinearRewardsHarvested(address indexed account, uint256[] reward);
     event LinearPendingWithdraw(address indexed account, uint256[] amount);
     event LinearEmergencyWithdraw(address indexed account, uint256[] amount);
-    event LinearWithdrawAndRewardsHarvested(address indexed account, uint256[] amount, uint256[] reward);
+    event LinearWithdrawAndRewardsHarvested(
+        address indexed account,
+        uint256[] amount,
+        uint256[] reward
+    );
 
     struct LinearStakingData {
         uint256[] balance;
@@ -243,6 +247,8 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
     {
         address account = msg.sender;
         LinearStakingData storage stakingData = linearStakingData[account];
+        uint256[] memory _stakedTokenRate = stakedTokenRate;
+        uint256 shared_times = _amount[0] / _stakedTokenRate[0];
 
         require(
             block.timestamp >= stakingData.joinTime + lockDuration,
@@ -265,6 +271,11 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
             require(
                 stakingData.balance[i] >= _amount[i],
                 "LinearStakingPool: invalid amount"
+            );
+
+            require(
+                _stakedTokenRate[i] * shared_times == _amount[i],
+                "LinearPool: staked tokens not meet staked token rate"
             );
 
             if (stakingData.reward[i] > 0) {
@@ -412,7 +423,7 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
         internal
     {
         LinearStakingData storage stakingData = linearStakingData[account];
-        uint256[] memory  _stakedTokenRate = stakedTokenRate; 
+        uint256[] memory _stakedTokenRate = stakedTokenRate;
         uint256 shared_times = _amount[0] / _stakedTokenRate[0];
         require(
             _amount.length == linearAcceptedToken.length,
@@ -430,7 +441,11 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
         );
 
         if (cap > 0) {
-            for (uint256 i = 0; i < linearAcceptedToken.length; i = unsafe_inc(i)) {
+            for (
+                uint256 i = 0;
+                i < linearAcceptedToken.length;
+                i = unsafe_inc(i)
+            ) {
                 require(
                     totalStaked[i] + _amount[i] <= decimalsCap[i],
                     "LinearStakingPool: pool is full"
@@ -489,7 +504,9 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
         return decimals;
     }
 
-    function unsafe_inc(uint x) private pure returns (uint) {
-        unchecked { return x + 1; }
+    function unsafe_inc(uint256 x) private pure returns (uint256) {
+        unchecked {
+            return x + 1;
+        }
     }
 }
