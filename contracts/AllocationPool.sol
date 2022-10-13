@@ -18,6 +18,7 @@ contract AllocationPool is PausableUpgradeable {
     // Info of each user.
     struct UserInfo {
         uint256[] amount; // How many LP tokens the user has provided.
+        uint256[] pendingAmount; // How many LP tokens the user can claim
         uint256[] rewardDebt; // Reward debt. See explanation below.
         uint256 joinTime;
         //
@@ -33,10 +34,10 @@ contract AllocationPool is PausableUpgradeable {
         //   4. User's `rewardDebt` gets updated.
     }
 
+    // End pool
+    bool public isEnd;
     // Pool creator
     address public factory;
-    // How many allocation points assigned to this pool. TOKENs to distribute per block.
-    uint256 public allocPoint;
     // Last block number that TOKENs distribution occurs.
     uint256 public lastRewardBlock;
     // Bonus muliplier for early token makers.
@@ -62,9 +63,11 @@ contract AllocationPool is PausableUpgradeable {
     // Token per block with decimals
     uint256[] public decimalTokenPerBlock;
 
+    event PoolEnded();
     event ChangeAllocationPoint(uint256 point);
     event Deposit(address indexed user, uint256[] amount);
     event Withdraw(address indexed user, uint256[] amount);
+    event Claim(address indexed user, uint256[] amount);
     event AdminRecoverFund(address token, address to, uint256 amount);
     event EmergencyWithdraw(address indexed user, uint256[] amount);
 
@@ -96,7 +99,6 @@ contract AllocationPool is PausableUpgradeable {
             uint256[] memory _stakedTokenRate,
             uint256 _bonusMultiplier,
             uint256 _startBlock,
-            uint256 _allocPoint,
             uint256 _bonusEndBlock,
             uint256 _lockDuration
         ) = IPoolFactory(msg.sender).getAllocationParameters();
@@ -124,28 +126,12 @@ contract AllocationPool is PausableUpgradeable {
         factory = msg.sender;
         bonusMultiplier = _bonusMultiplier;
         startBlock = _startBlock;
-        allocPoint = _allocPoint;
         bonusEndBlock = _bonusEndBlock;
         lockDuration = _lockDuration;
 
         lastRewardBlock = block.number > startBlock ? block.number : startBlock;
-
-        uint256 totalAllocPoint = IPoolFactory(factory).totalAllocPoint();
-        totalAllocPoint = totalAllocPoint + _allocPoint;
-        IPoolFactory(factory).setTotalAllocPoint(totalAllocPoint);
     }
 
-    /**
-     * @notice Update the given pool's token allocation point. Can only be called by the owner.
-     */
-    function set(uint256 _allocPoint) public isMod {
-        uint256 totalAllocPoint = IPoolFactory(factory).totalAllocPoint();
-        totalAllocPoint = totalAllocPoint - allocPoint + _allocPoint;
-        allocPoint = _allocPoint;
-        IPoolFactory(factory).setTotalAllocPoint(totalAllocPoint);
-
-        emit ChangeAllocationPoint(_allocPoint);
-    }
 
     /**
      * @notice Pause contract
@@ -174,6 +160,16 @@ contract AllocationPool is PausableUpgradeable {
     ) external isAdmin {
         IERC20(_token).safeTransfer(_to, _amount);
         emit AdminRecoverFund(_token, _to, _amount);
+    }
+
+    /**
+     * @notice End Pool
+     */
+    function endPool() external isMod {
+        require(!isEnd, "AllocationPool: Pool already ended");
+        updatePool();
+        isEnd = true;
+        emit PoolEnded();
     }
 
     /**
@@ -213,31 +209,31 @@ contract AllocationPool is PausableUpgradeable {
         view
         returns (uint256[] memory rewards)
     {
-        uint256 totalAllocPoint = IPoolFactory(factory).totalAllocPoint();
         UserInfo memory user = userInfo[_user];
         uint256[] memory amount = user.amount;
         uint256[] memory rewardDebt = user.rewardDebt;
+        uint256[] memory pendingAmount = user.pendingAmount;
         rewards = new uint256[](lpToken.length);
         if (amount.length == 0) {
-            amount = new uint256[](lpToken.length);
-            rewardDebt = new uint256[](lpToken.length);
+            amount = new uint256[](rewards.length);
+            rewardDebt = new uint256[](rewards.length);
+            pendingAmount = new uint256[](rewards.length);
         }
         uint256[] memory _accTokenPerShare = accTokenPerShare;
-        uint256[] memory lpSupply = new uint256[](lpToken.length);
+        uint256[] memory lpSupply = new uint256[](rewards.length);
+        rewards = pendingAmount;
 
         uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
         for (uint256 i = 0; i < lpSupply.length; i++) {
             lpSupply[i] = lpToken[i].balanceOf(address(this));
 
             if (block.number > lastRewardBlock && lpSupply[i] != 0) {
-                uint256 tokenReward = (multiplier *
-                    decimalTokenPerBlock[i] *
-                    allocPoint) / totalAllocPoint;
+                uint256 tokenReward = (multiplier * decimalTokenPerBlock[i] );
 
                 _accTokenPerShare[i] =
                     _accTokenPerShare[i] +
                     ((tokenReward * 1e12) / lpSupply[i]);
-                rewards[i] =
+                rewards[i] = pendingAmount[i] +
                     (_accTokenPerShare[i] / 1e12) *
                     amount[i] -
                     rewardDebt[i];
@@ -249,10 +245,10 @@ contract AllocationPool is PausableUpgradeable {
      * @notice Update reward variables of the given pool to be up-to-date.
      */
     function updatePool() public whenNotPaused {
+        require(!isEnd, "AllocationPool: Pool ended");
         if (block.number <= lastRewardBlock) {
             return;
         }
-        uint256 totalAllocPoint = IPoolFactory(factory).totalAllocPoint();
         uint256[] memory  _stakedTokenRate = stakedTokenRate; 
         uint256 sum;
         for(uint256 i = 0; i < _stakedTokenRate.length; ++i) {
@@ -264,9 +260,8 @@ contract AllocationPool is PausableUpgradeable {
                 continue;
             }
             uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
-            uint256 tokenReward = (((multiplier *
-                decimalTokenPerBlock[i] *
-                allocPoint) / totalAllocPoint) / sum) * _stakedTokenRate[i];
+            uint256 tokenReward = ((multiplier *
+                decimalTokenPerBlock[i] ) / sum) * _stakedTokenRate[i];
             accTokenPerShare[i] =
                 accTokenPerShare[i] +
                 ((tokenReward * 1e12) / lpSupply);
@@ -279,11 +274,13 @@ contract AllocationPool is PausableUpgradeable {
      * @param _amounts amounts of token user stake into pool
      */
     function deposit(uint256[] calldata _amounts) external whenNotPaused {
+        require(!isEnd, "AllocationPool: Pool ended");
         UserInfo storage user = userInfo[msg.sender];
         updatePool();
         if (user.amount.length == 0) {
             user.amount = new uint256[](lpToken.length);
             user.rewardDebt = new uint256[](lpToken.length);
+            user.pendingAmount = new uint256[](lpToken.length);
         }
         uint256[] memory  _stakedTokenRate = stakedTokenRate; 
         uint256 shared_times = _amounts[0] / _stakedTokenRate[0];
@@ -296,7 +293,10 @@ contract AllocationPool is PausableUpgradeable {
                 uint256 pending = (user.amount[i] * accTokenPerShare[i]) /
                     1e12 -
                     user.rewardDebt[i];
-                safeTokenTransfer(rewardToken[i], msg.sender, pending);
+                
+                user.pendingAmount[i] += pending;
+                
+                // safeTokenTransfer(rewardToken[i], msg.sender, pending);
             }
             lpToken[i].safeTransferFrom(
                 address(msg.sender),
@@ -322,10 +322,13 @@ contract AllocationPool is PausableUpgradeable {
                 "AllocationStakingPool: still locked"
             );
         }
-        updatePool();
+        if(!isEnd) {
+            updatePool();
+        }
         if (user.amount.length == 0) {
             user.amount = new uint256[](lpToken.length);
             user.rewardDebt = new uint256[](lpToken.length);
+            user.pendingAmount = new uint256[](lpToken.length);
         }
         for (uint256 i = 0; i < lpToken.length; i++) {
             require(
@@ -335,12 +338,46 @@ contract AllocationPool is PausableUpgradeable {
             uint256 pending = (user.amount[i] * accTokenPerShare[i]) /
                 1e12 -
                 user.rewardDebt[i];
-            safeTokenTransfer(rewardToken[i], msg.sender, pending);
+            user.pendingAmount[i] += pending;
             user.amount[i] = user.amount[i] - _amounts[i];
             user.rewardDebt[i] = (user.amount[i] * accTokenPerShare[i]) / 1e12;
             lpToken[i].safeTransfer(address(msg.sender), _amounts[i]);
         }
         emit Withdraw(msg.sender, _amounts);
+    }
+
+    /**
+     * @notice Claim rewards tokens from contract.
+     */
+    function claimRewards() external whenNotPaused {
+        UserInfo storage user = userInfo[msg.sender];
+        if(lockDuration > 0) {
+            require(
+                block.timestamp >= user.joinTime + lockDuration,
+                "AllocationStakingPool: still locked"
+            );
+        }
+        if(!isEnd) {
+            updatePool();
+        }
+        if (user.amount.length == 0) {
+            user.amount = new uint256[](lpToken.length);
+            user.rewardDebt = new uint256[](lpToken.length);
+            user.pendingAmount = new uint256[](lpToken.length);
+        }
+        uint256[] memory _claims =  new uint256[](lpToken.length);
+        for (uint256 i = 0; i < lpToken.length; i++) {
+            uint256 pending = (user.amount[i] * accTokenPerShare[i]) /
+                1e12 -
+                user.rewardDebt[i];
+            pending += user.pendingAmount[i];
+            user.pendingAmount[i] = 0;
+            user.rewardDebt[i] = (user.amount[i] * accTokenPerShare[i]) / 1e12;
+            if(pending > 0) safeTokenTransfer(rewardToken[i], msg.sender, pending);
+
+            _claims[i] = pending;
+        }
+        emit Claim(msg.sender, _claims);
     }
 
     /**
@@ -353,6 +390,7 @@ contract AllocationPool is PausableUpgradeable {
             lpToken[i].safeTransfer(address(msg.sender), user.amount[i]);
             user.amount[i] = 0;
             user.rewardDebt[i] = 0;
+            user.pendingAmount[i] = 0;
         }
 
         emit EmergencyWithdraw(msg.sender, user.amount);
