@@ -223,11 +223,12 @@ contract AllocationPool is PausableUpgradeable {
         uint256[] memory lpSupply = new uint256[](rewards.length);
         rewards = pendingAmount;
 
-        uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
         for (uint256 i = 0; i < lpSupply.length; i++) {
             lpSupply[i] = lpToken[i].balanceOf(address(this));
 
             if (block.number > lastRewardBlock && lpSupply[i] != 0) {
+                uint256 multiplier = 
+                    getMultiplier(lastRewardBlock, block.number);
                 uint256 tokenReward = (multiplier * decimalTokenPerBlock[i]);
 
                 _accTokenPerShare[i] =
