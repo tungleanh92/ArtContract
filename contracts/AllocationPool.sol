@@ -38,6 +38,8 @@ contract AllocationPool is PausableUpgradeable {
     bool public isEnd;
     // Pool creator
     address public factory;
+    // The reward distribution address
+    address public allocationRewardDistributor;
     // Last block number that TOKENs distribution occurs.
     uint256 public lastRewardBlock;
     // Bonus muliplier for early token makers.
@@ -100,7 +102,8 @@ contract AllocationPool is PausableUpgradeable {
             uint256 _bonusMultiplier,
             uint256 _startBlock,
             uint256 _bonusEndBlock,
-            uint256 _lockDuration
+            uint256 _lockDuration,
+            address _rewardDistributor
         ) = IPoolFactory(msg.sender).getAllocationParameters();
 
         uint256 _rewardLength = _lpToken.length;
@@ -108,6 +111,11 @@ contract AllocationPool is PausableUpgradeable {
             _rewardLength == _rewardToken.length &&
                 _rewardLength == _stakedTokenRate.length,
             "AllocationPool: invalid token length"
+        );
+        
+        require(
+            _rewardDistributor != address(0),
+            "AllocationStakingPool: invalid reward distributor"
         );
 
         for (uint256 i = 0; i < _rewardLength; i++) {
@@ -129,7 +137,7 @@ contract AllocationPool is PausableUpgradeable {
         startBlock = _startBlock;
         bonusEndBlock = _bonusEndBlock;
         lockDuration = _lockDuration;
-
+        allocationRewardDistributor = _rewardDistributor;
         lastRewardBlock = block.number > startBlock ? block.number : startBlock;
     }
 
@@ -145,6 +153,21 @@ contract AllocationPool is PausableUpgradeable {
      */
     function unpauseContract() external isMod {
         _unpause();
+    }
+
+    /**
+     * @notice Set the reward distributor. Can only be called by the owner.
+     * @param _allocationRewardDistributor the reward distributor
+     */
+    function allocationSetRewardDistributor(address _allocationRewardDistributor)
+        external
+        isMod
+    {
+        require(
+            _allocationRewardDistributor != address(0),
+            "AllocationStakingPool: invalid reward distributor"
+        );
+        allocationRewardDistributor = _allocationRewardDistributor;
     }
 
     /**
@@ -414,11 +437,12 @@ contract AllocationPool is PausableUpgradeable {
         address _to,
         uint256 _amount
     ) internal {
-        uint256 tokenBal = token.balanceOf(address(this));
+        address _allocationRewardDistributor = allocationRewardDistributor;
+        uint256 tokenBal = token.balanceOf(_allocationRewardDistributor);
         if (_amount > tokenBal) {
-            token.transfer(_to, tokenBal);
+            token.transferFrom(_allocationRewardDistributor, _to, tokenBal);
         } else {
-            token.transfer(_to, _amount);
+            token.transferFrom(_allocationRewardDistributor, _to, _amount);
         }
     }
 

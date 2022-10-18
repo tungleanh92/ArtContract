@@ -39,6 +39,7 @@ interface IPoolFactory {
         uint256  startBlock;
         uint256  bonusEndBlock;
         uint256  lockDuration;
+        address  rewardDistributor;
     }
 
 
@@ -65,6 +66,7 @@ interface IPoolFactory {
             uint256 bonusMultiplier,
             uint256  startBlock,
             uint256  bonusEndBlock,
-            uint256 lockDuration
+            uint256 lockDuration,
+            address rewardDistributor
         );
 }
