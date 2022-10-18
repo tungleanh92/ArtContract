@@ -52,6 +52,8 @@ contract AllocationPool is PausableUpgradeable {
     uint256 public startBlock;
     // Lock time to claim reward after staked
     uint256 public lockDuration;
+    // All token stake
+    uint256[] public totalStaked;
     // Address of LP token contract.
     IERC20[] public lpToken;
     // Reward token
@@ -127,6 +129,7 @@ contract AllocationPool is PausableUpgradeable {
             lpToken.push(IERC20(_lpToken[i]));
             rewardToken.push(IERC20(_rewardToken[i]));
             accTokenPerShare.push(0);
+            totalStaked.push(0);
 
             uint8 _decimals = _getDecimals(_rewardToken[i]);
             uint256 _formated = _tokenPerBlock * (10**(_decimals));
@@ -244,11 +247,10 @@ contract AllocationPool is PausableUpgradeable {
             pendingAmount = new uint256[](rewards.length);
         }
         uint256[] memory _accTokenPerShare = accTokenPerShare;
-        uint256[] memory lpSupply = new uint256[](rewards.length);
+        uint256[] memory lpSupply = totalStaked;
         rewards = pendingAmount;
 
         for (uint256 i = 0; i < lpSupply.length; i++) {
-            lpSupply[i] = lpToken[i].balanceOf(address(this));
 
             if (block.number > lastRewardBlock && lpSupply[i] != 0) {
                 uint256 multiplier = 
@@ -280,9 +282,9 @@ contract AllocationPool is PausableUpgradeable {
         for (uint256 i = 0; i < _stakedTokenRate.length; ++i) {
             sum += _stakedTokenRate[i];
         }
+        uint256[] memory lpSupply = totalStaked;
         for (uint256 i = 0; i < lpToken.length; i++) {
-            uint256 lpSupply = lpToken[i].balanceOf(address(this));
-            if (lpSupply == 0) {
+            if (lpSupply[i] == 0) {
                 continue;
             }
             uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
@@ -290,7 +292,7 @@ contract AllocationPool is PausableUpgradeable {
                 sum) * _stakedTokenRate[i];
             accTokenPerShare[i] =
                 accTokenPerShare[i] +
-                ((tokenReward * 1e12) / lpSupply);
+                ((tokenReward * 1e12) / lpSupply[i]);
         }
         lastRewardBlock = block.number;
     }
@@ -321,8 +323,6 @@ contract AllocationPool is PausableUpgradeable {
                     user.rewardDebt[i];
 
                 user.pendingAmount[i] += pending;
-
-                // safeTokenTransfer(rewardToken[i], msg.sender, pending);
             }
             lpToken[i].safeTransferFrom(
                 address(msg.sender),
@@ -331,6 +331,7 @@ contract AllocationPool is PausableUpgradeable {
             );
             user.amount[i] = user.amount[i] + _amounts[i];
             user.rewardDebt[i] = (user.amount[i] * accTokenPerShare[i]) / 1e12;
+            totalStaked[i] += _amounts[i];
         }
         user.joinTime = block.timestamp;
         emit Deposit(msg.sender, _amounts);
@@ -373,6 +374,7 @@ contract AllocationPool is PausableUpgradeable {
                 user.rewardDebt[i];
             user.pendingAmount[i] += pending;
             user.amount[i] = user.amount[i] - _amounts[i];
+            totalStaked[i] -= _amounts[i];
             user.rewardDebt[i] = (user.amount[i] * accTokenPerShare[i]) / 1e12;
             lpToken[i].safeTransfer(address(msg.sender), _amounts[i]);
         }
@@ -422,6 +424,7 @@ contract AllocationPool is PausableUpgradeable {
         if (user.amount.length == 0) return;
         for (uint256 i = 0; i < lpToken.length; i++) {
             lpToken[i].safeTransfer(address(msg.sender), user.amount[i]);
+            totalStaked[i] -= user.amount[i];
             user.amount[i] = 0;
             user.rewardDebt[i] = 0;
             user.pendingAmount[i] = 0;
