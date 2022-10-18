@@ -133,7 +133,8 @@ describe("Pool factory", () => {
         "100",
         "100",
         "1000",
-        time.duration.hours("1")
+        time.duration.hours("1"),
+        signer,
       )
     ).to.be.revertedWith("AllocationPool: invalid token length");
 
@@ -145,7 +146,8 @@ describe("Pool factory", () => {
         "100",
         "100",
         "1000",
-        time.duration.hours("1")
+        time.duration.hours("1"),
+        signer,
       )
     ).to.be.revertedWith("AllocationPool: invalid token address");
 
@@ -157,7 +159,8 @@ describe("Pool factory", () => {
         "100",
         "100",
         "1000",
-        time.duration.hours("1")
+        time.duration.hours("1"),
+        signer,
       )
     ).to.not.be.reverted;
 
@@ -169,6 +172,7 @@ describe("Pool factory", () => {
       "100",
       "1000",
       time.duration.hours("1"),
+      signer,
     );
 
     await expect(

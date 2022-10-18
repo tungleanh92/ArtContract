@@ -8,6 +8,7 @@ import { FixedToken } from "../typechain/FixedToken";
 import { TomiToken } from "../typechain/TomiToken";
 import { AllocationPool, PoolFactory } from "../typechain";
 import * as time from "./utils/time";
+import { MOD_ROLE } from "./utils/constant";
 const { toWei, fromWei } = web3.utils;
 
 
@@ -65,6 +66,7 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
+        distributor.address
       );
 
       await poolFactory.createAllocationPool(
@@ -75,6 +77,7 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
+        distributor.address
       );
 
       pool = (await ethers.getContractAt(
@@ -114,6 +117,7 @@ describe("Pool", () => {
         "100",
         "1000",
         0,
+        distributor.address
       );
 
       await poolFactory.createAllocationPool(
@@ -124,6 +128,7 @@ describe("Pool", () => {
         "100",
         "1000",
         0,
+        distributor.address
       );
 
       pool = (await ethers.getContractAt(
@@ -134,7 +139,8 @@ describe("Pool", () => {
       await mintableToken.connect(account1).approve(poolAddress, ethers.constants.MaxUint256);
       await mintableToken.connect(account2).approve(poolAddress, ethers.constants.MaxUint256);
       await mintableToken.connect(account3).approve(poolAddress, ethers.constants.MaxUint256);
-      await distributeToken.transfer(pool.address, toWei("1375000000"));
+      await distributeToken.transfer(distributor.address, toWei("1375000000"));
+      await distributeToken.connect(distributor).approve(poolAddress, ethers.constants.MaxUint256);
 
 
       // 10 per block farming rate starting at block 100 with bonus until block 1000
@@ -175,6 +181,7 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.seconds("1"),
+        distributor.address
       );
 
       await poolFactory.createAllocationPool(
@@ -185,6 +192,7 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.seconds("1"),
+        distributor.address
       );
 
       pool = (await ethers.getContractAt(
@@ -195,7 +203,7 @@ describe("Pool", () => {
       await mintableToken.connect(account1).approve(poolAddress, ethers.constants.MaxUint256);
       await mintableToken.connect(account2).approve(poolAddress, ethers.constants.MaxUint256);
       await mintableToken.connect(account3).approve(poolAddress, ethers.constants.MaxUint256);
-      await distributeToken.transfer(pool.address, toWei("1375000000"));
+      await distributeToken.transfer(distributor.address, toWei("1375000000"));
 
       
 
@@ -273,6 +281,7 @@ describe("Pool", () => {
         "20",
         "1000",
         time.duration.hours("1"),
+        distributor.address
       );
 
       await poolFactory.createAllocationPool(
@@ -283,6 +292,7 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
+        distributor.address
       );
 
       const pool2 = (await ethers.getContractAt(
@@ -293,8 +303,8 @@ describe("Pool", () => {
       await fixedToken.transfer(account1.address, toWei("1000"));
       await mintableToken.transfer(account1.address, toWei("1000"));
 
-      await distributeToken.transfer(pool2.address, toWei("1375000000"));
-      await distributeToken2.transfer(pool2.address, toWei("1375000000"));
+      await distributeToken.transfer(distributor.address, toWei("1375000000"));
+      await distributeToken2.transfer(distributor.address, toWei("1375000000"));
       await fixedToken.connect(account1).approve(pool2.address, ethers.constants.MaxUint256);
       await mintableToken.connect(account1).approve(pool2.address, ethers.constants.MaxUint256);
 
@@ -312,6 +322,7 @@ describe("Pool", () => {
         "20",
         "1000",
         time.duration.hours("1"),
+        distributor.address
       );
 
       await poolFactory.createAllocationPool(
@@ -322,6 +333,7 @@ describe("Pool", () => {
         "20",
         "1000",
         time.duration.hours("1"),
+        distributor.address
       );
 
       const pool = (await ethers.getContractAt(
@@ -350,6 +362,7 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
+        distributor.address
       );
 
       await poolFactory.createAllocationPool(
@@ -360,6 +373,7 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
+        distributor.address
       );
 
       pool = (await ethers.getContractAt(
@@ -379,6 +393,7 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
+        distributor.address
       );
 
       await poolFactory.createAllocationPool(
@@ -389,6 +404,7 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
+        distributor.address
       );
 
       const pool2 = (await ethers.getContractAt(
@@ -396,8 +412,10 @@ describe("Pool", () => {
         pool2Address,
       )) as AllocationPool;
 
-      await distributeToken.transfer(pool2.address, toWei("1375000000"));
-      await distributeToken2.transfer(pool2.address, toWei("1375000000"));
+      await distributeToken.transfer(distributor.address, toWei("1375000000"));
+      await distributeToken2.transfer(distributor.address, toWei("1375000000"));
+      await distributeToken.connect(distributor).approve(pool2.address, ethers.constants.MaxUint256);
+      await distributeToken2.connect(distributor).approve(pool2.address, ethers.constants.MaxUint256);
       await fixedToken.connect(account1).approve(pool2.address, ethers.constants.MaxUint256);
       await mintableToken.connect(account1).approve(pool2.address, ethers.constants.MaxUint256);
 
@@ -423,6 +441,7 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
+        distributor.address
       );
 
       await poolFactory.createAllocationPool(
@@ -433,6 +452,7 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
+        distributor.address
       );
 
       pool = (await ethers.getContractAt(
@@ -468,6 +488,7 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
+        distributor.address
       );
 
       await poolFactory.createAllocationPool(
@@ -478,6 +499,7 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
+        distributor.address
       );
 
       pool = (await ethers.getContractAt(
@@ -488,7 +510,7 @@ describe("Pool", () => {
       await mintableToken.connect(account1).approve(poolAddress, ethers.constants.MaxUint256);
       await mintableToken.connect(account2).approve(poolAddress, ethers.constants.MaxUint256);
       await mintableToken.connect(account3).approve(poolAddress, ethers.constants.MaxUint256);
-      await distributeToken.transfer(pool.address, toWei("1375000000"));
+      await distributeToken.transfer(distributor.address, toWei("1375000000"));
 
       await time.advanceBlockTo(998);
       // deposit 10 at block 990
@@ -521,6 +543,7 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
+        distributor.address
       );
 
       await poolFactory.createAllocationPool(
@@ -531,6 +554,7 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
+        distributor.address
       );
 
       pool = (await ethers.getContractAt(
@@ -541,7 +565,8 @@ describe("Pool", () => {
       await mintableToken.connect(account1).approve(poolAddress, ethers.constants.MaxUint256);
       await mintableToken.connect(account2).approve(poolAddress, ethers.constants.MaxUint256);
       await mintableToken.connect(account3).approve(poolAddress, ethers.constants.MaxUint256);
-      await distributeToken.transfer(pool.address, "100000");
+      await distributeToken.transfer(distributor.address, "100000");
+      await distributeToken.connect(distributor).approve(poolAddress, ethers.constants.MaxUint256);
 
       await time.advanceBlockTo(1999);
       await pool.connect(account1).deposit(["10"]);
@@ -552,5 +577,43 @@ describe("Pool", () => {
 
       expect(await distributeToken.balanceOf(account1.address)).to.equal("100000");
     })
+
+    it("Set pool distributor", async () => {
+      const poolAddress = await poolFactory.callStatic.createAllocationPool(
+        [mintableToken.address],
+        [distributeToken.address],
+        ["1"],
+        "100",
+        "100",
+        "1000",
+        time.duration.hours("1"),
+        distributor.address
+      );
+
+      await poolFactory.createAllocationPool(
+        [mintableToken.address],
+        [distributeToken.address],
+        ["1"],
+        "100",
+        "100",
+        "1000",
+        time.duration.hours("1"),
+        distributor.address
+      );
+
+      pool = (await ethers.getContractAt(
+        "AllocationPool",
+        poolAddress,
+      )) as AllocationPool;
+
+      await expect(
+        pool.connect(account1).allocationSetRewardDistributor(account2.address)
+      ).to.be.revertedWith(
+        "AllocationPool: forbidden"
+      );
+
+      await poolFactory.grantRole(MOD_ROLE, account1.address);
+      await expect(pool.connect(account1).allocationSetRewardDistributor(account2.address)).not.to.be.reverted;
+    });
   })
 })
