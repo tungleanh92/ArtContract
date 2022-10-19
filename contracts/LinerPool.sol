@@ -38,6 +38,8 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
     IERC20[] public linearAcceptedToken;
     // Reward token
     IERC20[] public linearRewardToken;
+    // The accepted token address type
+    address[] public linearAcceptedTokenAddress;
     // Token rate each pool
     uint256[] public stakedTokenRate;
     // Cap with decimals
@@ -128,6 +130,7 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
             uint256 _formatedCap = (_cap / 1e18) * (10**_decimals);
             decimalsCap.push(_formatedCap);
         }
+        linearAcceptedTokenAddress = _saleToken;
         stakedTokenRate = _stakedTokenRate;
         factory = msg.sender;
         APR = _APR;
@@ -441,16 +444,23 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
         );
 
         if (cap > 0) {
+            uint256 sumAmount = 0;
+            uint256 sumStaked = 0;
+            address[] memory _linearAcceptedTokenAddress = linearAcceptedTokenAddress;
             for (
                 uint256 i = 0;
-                i < linearAcceptedToken.length;
+                i < linearAcceptedTokenAddress.length;
                 i = unsafe_inc(i)
             ) {
-                require(
-                    totalStaked[i] + _amount[i] <= decimalsCap[i],
-                    "LinearStakingPool: pool is full"
-                );
+                uint8 _decimals = _getDecimals(_linearAcceptedTokenAddress[i]);
+                sumAmount += _amount[i]/(10**_decimals) * 1e18;
+                sumStaked += totalStaked[i]/(10**_decimals) * 1e18; 
+                // require(
+                //     totalStaked[i] + _amount[i] <= decimalsCap[i],
+                //     "LinearStakingPool: pool is full"
+                // );
             }
+            require(sumAmount+sumStaked<=cap, "LinearStakingPool: pool is full");
         }
 
         _linearHarvest(account);

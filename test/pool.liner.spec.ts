@@ -24,6 +24,7 @@ describe("Pool", () => {
   let poolFactory: PoolFactory;
   let pool: LinearPool;
   let poolCap5: LinearPool;
+  let poolCap10: LinearPool;
   let poolZero: LinearPool;
   let poolFuture: LinearPool;
   let pool2Token: LinearPool;
@@ -96,6 +97,33 @@ describe("Pool", () => {
     poolCap5 = (await ethers.getContractAt(
       "LinearPool",
       poolCap5Address,
+    )) as LinearPool;
+
+    const poolCap10Address = await poolFactory.callStatic.createLinerPool(
+      [mintableToken.address, mintableToken.address],
+      [fixedToken.address, fixedToken.address],
+      [toWei("1"), toWei("2")],
+      toWei("10"),
+      toWei("10"),
+      (await time.latest()).toNumber(),
+      duration.hours("1"),
+      distributor.address,
+    );
+
+    await poolFactory.createLinerPool(
+      [mintableToken.address, mintableToken.address],
+      [fixedToken.address, fixedToken.address],
+      [toWei("1"), toWei("2")],
+      toWei("10"),
+      toWei("10"),
+      (await time.latest()).toNumber(),
+      duration.hours("1"),
+      distributor.address,
+    );
+
+    poolCap10 = (await ethers.getContractAt(
+      "LinearPool",
+      poolCap10Address,
     )) as LinearPool;
 
     const pool2TokenAddress = await poolFactory.callStatic.createLinerPool(
@@ -187,6 +215,10 @@ describe("Pool", () => {
     await mintableToken.connect(account2).approve(poolCap5Address, ethers.constants.MaxUint256);
     await fixedToken.connect(distributor).approve(poolCap5Address, ethers.constants.MaxUint256);
 
+    await mintableToken.connect(account1).approve(poolCap10Address, ethers.constants.MaxUint256);
+    await mintableToken.connect(account2).approve(poolCap10Address, ethers.constants.MaxUint256);
+    await fixedToken.connect(distributor).approve(poolCap10Address, ethers.constants.MaxUint256);
+
     await mintableToken.connect(account1).approve(poolZeroAddress, ethers.constants.MaxUint256);
     await mintableToken.connect(account2).approve(poolZeroAddress, ethers.constants.MaxUint256);
     await fixedToken.connect(distributor).approve(poolZeroAddress, ethers.constants.MaxUint256);
@@ -230,6 +262,15 @@ describe("Pool", () => {
 
       await expect(
         poolCap5.connect(account2).linearDeposit([toWei("2")])
+      ).to.be.revertedWith("LinearStakingPool: pool is full");
+    });
+
+    it("Stake 10_cap with 2 address token pool", async () => {
+      await poolCap10.connect(account1).linearDeposit([toWei("1"), toWei("2")]);
+      await poolCap10.connect(account2).linearDeposit([toWei("1"), toWei("2")]);
+
+      await expect(
+        poolCap10.connect(account2).linearDeposit([toWei("2"), toWei("4")])
       ).to.be.revertedWith("LinearStakingPool: pool is full");
     });
 
