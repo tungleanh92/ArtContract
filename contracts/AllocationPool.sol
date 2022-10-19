@@ -248,6 +248,11 @@ contract AllocationPool is PausableUpgradeable {
         }
         uint256[] memory _accTokenPerShare = accTokenPerShare;
         uint256[] memory lpSupply = totalStaked;
+        uint256[] memory _stakedTokenRate = stakedTokenRate;
+        uint256 sum;
+        for (uint256 i = 0; i < _stakedTokenRate.length; ++i) {
+            sum += _stakedTokenRate[i];
+        }
         rewards = pendingAmount;
 
         for (uint256 i = 0; i < lpSupply.length; i++) {
@@ -255,7 +260,7 @@ contract AllocationPool is PausableUpgradeable {
             if (block.number > lastRewardBlock && lpSupply[i] != 0) {
                 uint256 multiplier = 
                     getMultiplier(lastRewardBlock, block.number);
-                uint256 tokenReward = (multiplier * decimalTokenPerBlock[i]);
+                uint256 tokenReward = ((multiplier * decimalTokenPerBlock[i]) / sum) * _stakedTokenRate[i];
 
                 _accTokenPerShare[i] =
                     _accTokenPerShare[i] +
@@ -409,7 +414,7 @@ contract AllocationPool is PausableUpgradeable {
             user.pendingAmount[i] = 0;
             user.rewardDebt[i] = (user.amount[i] * accTokenPerShare[i]) / 1e12;
             if (pending > 0)
-                safeTokenTransfer(rewardToken[i], msg.sender, pending);
+                rewardToken[i].safeTransferFrom(allocationRewardDistributor, msg.sender, pending);
 
             _claims[i] = pending;
         }
