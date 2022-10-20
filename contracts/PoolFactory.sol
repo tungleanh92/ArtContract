@@ -58,7 +58,8 @@ contract PoolFactory is IPoolFactory, AccessControl {
                 uint256  startBlock,
                 uint256  bonusEndBlock,
                 uint256 lockDuration,
-                address rewardDistributor
+                address rewardDistributor,
+                uint256 tokenPerBlock
             ) {
                 AllocationParams memory alloParam = allocationParameters;
                 return (
@@ -69,7 +70,8 @@ contract PoolFactory is IPoolFactory, AccessControl {
                     alloParam.startBlock,
                     alloParam.bonusEndBlock,
                     alloParam.lockDuration,
-                    alloParam.rewardDistributor
+                    alloParam.rewardDistributor,
+                    alloParam.tokenPerBlock
                 );
             }
 
@@ -132,7 +134,8 @@ contract PoolFactory is IPoolFactory, AccessControl {
         uint256  _startBlock,
         uint256  _bonusEndBlock,
         uint256 _lockDuration,
-        address _rewardDistributor
+        address _rewardDistributor,
+        uint256 _tokenPerBlock
     ) external returns (address poolAddress) {
         require(hasRole(ADMIN, msg.sender), "PoolFactory: require ADMIN role");
 
@@ -144,7 +147,8 @@ contract PoolFactory is IPoolFactory, AccessControl {
             _startBlock,
             _bonusEndBlock,
             _lockDuration,
-            _rewardDistributor
+            _rewardDistributor,
+            _tokenPerBlock
         );
 
         emit AllocationPoolCreated(poolAddress);
@@ -188,7 +192,8 @@ contract PoolFactory is IPoolFactory, AccessControl {
         uint256  _startBlock,
         uint256  _bonusEndBlock,
         uint256 _lockDuration,
-        address _rewardDistributor
+        address _rewardDistributor,
+        uint256 _tokenPerBlock
     ) private returns(address poolAddress) {
         allocationParameters = AllocationParams({
             lpToken: _lpToken,
@@ -198,7 +203,8 @@ contract PoolFactory is IPoolFactory, AccessControl {
             startBlock: _startBlock, 
             bonusEndBlock: _bonusEndBlock ,
             lockDuration: _lockDuration,
-            rewardDistributor: _rewardDistributor
+            rewardDistributor: _rewardDistributor,
+            tokenPerBlock: _tokenPerBlock
         });
 
         poolAddress = Clones.clone(address(allocationImpl));
