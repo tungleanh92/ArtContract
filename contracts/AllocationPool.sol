@@ -47,7 +47,7 @@ contract AllocationPool is PausableUpgradeable {
     // Block number when bonus TOKEN period ends.
     uint256 public bonusEndBlock;
     // tokens created per block.
-    uint256 public constant TOKEN_PER_BLOCK = 10;
+    uint256 public token_per_block;
     // The block number when TOKEN mining starts.
     uint256 public startBlock;
     // Lock time to claim reward after staked
@@ -103,7 +103,8 @@ contract AllocationPool is PausableUpgradeable {
             uint256 _startBlock,
             uint256 _bonusEndBlock,
             uint256 _lockDuration,
-            address _rewardDistributor
+            address _rewardDistributor,
+            uint256 _tokenPerBlock
         ) = IPoolFactory(msg.sender).getAllocationParameters();
 
         uint256 _rewardLength = _lpToken.length;
@@ -128,7 +129,7 @@ contract AllocationPool is PausableUpgradeable {
             accTokenPerShare.push(0);
 
             uint8 _decimals = _getDecimals(_rewardToken[i]);
-            uint256 _formated = TOKEN_PER_BLOCK * (10**(_decimals));
+            uint256 _formated = _tokenPerBlock * (10**(_decimals));
             decimalTokenPerBlock.push(_formated);
         }
         stakedTokenRate = _stakedTokenRate;

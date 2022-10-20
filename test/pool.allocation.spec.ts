@@ -66,7 +66,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       await poolFactory.createAllocationPool(
@@ -77,7 +78,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       pool = (await ethers.getContractAt(
@@ -117,7 +119,8 @@ describe("Pool", () => {
         "100",
         "1000",
         0,
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       await poolFactory.createAllocationPool(
@@ -128,7 +131,8 @@ describe("Pool", () => {
         "100",
         "1000",
         0,
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       pool = (await ethers.getContractAt(
@@ -181,7 +185,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.seconds("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       await poolFactory.createAllocationPool(
@@ -192,7 +197,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.seconds("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       pool = (await ethers.getContractAt(
@@ -281,7 +287,8 @@ describe("Pool", () => {
         "20",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       await poolFactory.createAllocationPool(
@@ -292,7 +299,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       const pool2 = (await ethers.getContractAt(
@@ -322,7 +330,8 @@ describe("Pool", () => {
         "20",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       await poolFactory.createAllocationPool(
@@ -333,7 +342,8 @@ describe("Pool", () => {
         "20",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       const pool = (await ethers.getContractAt(
@@ -362,7 +372,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       await poolFactory.createAllocationPool(
@@ -373,7 +384,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       pool = (await ethers.getContractAt(
@@ -393,7 +405,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       await poolFactory.createAllocationPool(
@@ -404,7 +417,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       const pool2 = (await ethers.getContractAt(
@@ -441,7 +455,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       await poolFactory.createAllocationPool(
@@ -452,7 +467,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       pool = (await ethers.getContractAt(
@@ -488,7 +504,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       await poolFactory.createAllocationPool(
@@ -499,7 +516,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       pool = (await ethers.getContractAt(
@@ -543,7 +561,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       await poolFactory.createAllocationPool(
@@ -554,7 +573,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       pool = (await ethers.getContractAt(
@@ -587,7 +607,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       await poolFactory.createAllocationPool(
@@ -598,7 +619,8 @@ describe("Pool", () => {
         "100",
         "1000",
         time.duration.hours("1"),
-        distributor.address
+        distributor.address,
+        "10"
       );
 
       pool = (await ethers.getContractAt(
