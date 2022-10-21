@@ -47,7 +47,7 @@ contract AllocationPool is PausableUpgradeable {
     // Block number when bonus TOKEN period ends.
     uint256 public bonusEndBlock;
     // tokens created per block.
-    uint256 public token_per_block;
+    uint256 public tokenPerBlock;
     // The block number when TOKEN mining starts.
     uint256 public startBlock;
     // Lock time to claim reward after staked
@@ -137,6 +137,7 @@ contract AllocationPool is PausableUpgradeable {
             uint256 _formated = _tokenPerBlock * (10**(_decimals));
             decimalTokenPerBlock.push(_formated);
         }
+        tokenPerBlock = _tokenPerBlock;
         stakedTokenRate = _stakedTokenRate;
         factory = msg.sender;
         bonusMultiplier = _bonusMultiplier;
