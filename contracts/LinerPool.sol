@@ -473,12 +473,8 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
                 i = unsafe_inc(i)
             ) {
                 uint8 _decimals = _getDecimals(_linearAcceptedTokenAddress[i]);
-                sumAmount += (_amount[i] / (10**_decimals)) * 1e18;
-                sumStaked += (totalStaked[i] / (10**_decimals)) * 1e18;
-                // require(
-                //     totalStaked[i] + _amount[i] <= decimalsCap[i],
-                //     "LinearStakingPool: pool is full"
-                // );
+                sumAmount += (_amount[i] * (1e18 / (10**_decimals)));
+                sumStaked += (totalStaked[i] * (1e18 / (10**_decimals)));
             }
             require(
                 sumAmount + sumStaked <= cap,
