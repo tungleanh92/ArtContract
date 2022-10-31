@@ -287,10 +287,6 @@ describe("Pool", () => {
 
             expect(acc1Amounts).to.deep.equal([toWei("5")]).to.deep.equal(acc2Amounts);
 
-            await pool.connect(account1).linearDepositSpecifyReceiver([toWei("5")], account2.address);
-            acc2Amounts = await (await pool.linearBalanceOf(account2.address)).map(e => e.toString());
-            expect(acc2Amounts).to.deep.equal([toWei("10")])
-
         });
 
         it("Stake 5_cap pool", async () => {
@@ -573,19 +569,6 @@ describe("Pool", () => {
             await expect(pool.connect(account1).pauseContract()).not.to.be.reverted;
             await expect(pool.connect(account1).unpauseContract()).not.to.be.reverted;
 
-        });
-
-        it("Set pool status", async () => {
-
-            await expect(
-                pool.connect(account1).linearSetRewardDistributor(account2.address)
-            ).to.be.revertedWith(
-                "LinearStakingPool: forbidden"
-            );
-
-
-            await poolFactory.grantRole(MOD_ROLE, account1.address);
-            await expect(pool.connect(account1).linearSetRewardDistributor(account2.address)).not.to.be.reverted;
         });
 
         it("Admin withdraw", async () => {

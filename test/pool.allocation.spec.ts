@@ -625,15 +625,6 @@ describe("Pool", () => {
         "AllocationPool",
         poolAddress,
       )) as AllocationPool;
-
-      await expect(
-        pool.connect(account1).allocationSetRewardDistributor(account2.address)
-      ).to.be.revertedWith(
-        "AllocationPool: forbidden"
-      );
-
-      await poolFactory.grantRole(MOD_ROLE, account1.address);
-      await expect(pool.connect(account1).allocationSetRewardDistributor(account2.address)).not.to.be.reverted;
     });
   })
 })
