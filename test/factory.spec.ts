@@ -57,7 +57,7 @@ describe("Pool factory", () => {
         .connect(user)
         .createLinerPool(
           [mintableToken.address],
-          [fixedToken.address],
+          [mintableToken.address],
           ["1"],
           toWei("10"),
           0,
@@ -70,7 +70,7 @@ describe("Pool factory", () => {
     await expect(
       poolFactory.createLinerPool(
         [mintableToken.address],
-        [fixedToken.address],
+        [mintableToken.address],
         ["1"],
         toWei("10"),
         0,
@@ -83,7 +83,7 @@ describe("Pool factory", () => {
     await expect(
       poolFactory.createLinerPool(
         [mintableToken.address],
-        [fixedToken.address],
+        [mintableToken.address],
         ["1"],
         toWei("10"),
         0,
@@ -108,7 +108,7 @@ describe("Pool factory", () => {
 
     const poolAddress = await poolFactory.callStatic.createLinerPool(
       [mintableToken.address],
-      [fixedToken.address],
+      [mintableToken.address],
       ["1"],
       toWei("10"),
       0,

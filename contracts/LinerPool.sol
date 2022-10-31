@@ -44,6 +44,8 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
     uint256[] public stakedTokenRate;
     // Cap with decimals
     uint256[] public decimalsCap;
+    // decimals of tokens
+    uint8[] public decimalsToken;
 
     // Info of each user that stakes in pool
     mapping(address => LinearStakingData) public linearStakingData;
@@ -122,15 +124,21 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
                 "LinearStakingPool: invalid token address"
             );
 
+            require(
+                _stakeToken[i] == _saleToken[i],
+                "LinearStakingPool: stake token and reward token must be the same"
+            );
+
             linearAcceptedToken.push(IERC20(_stakeToken[i]));
             linearRewardToken.push(IERC20(_saleToken[i]));
             totalStaked.push(0);
 
             uint8 _decimals = _getDecimals(_saleToken[i]);
+            decimalsToken.push(_decimals);
             uint256 _formatedCap = (_cap / 1e18) * (10**_decimals);
             decimalsCap.push(_formatedCap);
         }
-        linearAcceptedTokenAddress = _saleToken;
+        linearAcceptedTokenAddress = _stakeToken;
         stakedTokenRate = _stakedTokenRate;
         factory = msg.sender;
         APR = _APR;
@@ -362,12 +370,23 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
             ? endTime - startTime
             : 0;
 
+        uint256 sumStaked = 0;
+        address[] memory _acceptToken = linearAcceptedTokenAddress;
+        uint8[] memory _decimalsToken = decimalsToken;
+        for (uint256 i = 0; i < stakingData.balance.length; i = unsafe_inc(i)) {
+            sumStaked += ((1e18 / (10**_decimalsToken[i])) *
+                stakingData.balance[i]);
+        }
+        sumStaked =
+            ((sumStaked * stakedTimeInSeconds * APR) / ONE_YEAR_IN_SECONDS) /
+            1e20;
+
         rewards = new uint256[](stakingData.balance.length);
         for (uint256 i = 0; i < stakingData.balance.length; i = unsafe_inc(i)) {
-            uint256 pendingReward = ((stakingData.balance[i] *
-                stakedTimeInSeconds *
-                APR) / ONE_YEAR_IN_SECONDS) / 1e20;
-            rewards[i] = stakingData.reward[i] + pendingReward;
+            rewards[i] =
+                stakingData.reward[i] +
+                ((((sumStaked * _stakedTokenRate[i]) / sum) *
+                    (10**_decimalsToken[i])) / 1e18);
         }
     }
 
@@ -446,21 +465,25 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
         if (cap > 0) {
             uint256 sumAmount = 0;
             uint256 sumStaked = 0;
-            address[] memory _linearAcceptedTokenAddress = linearAcceptedTokenAddress;
+            address[]
+                memory _linearAcceptedTokenAddress = linearAcceptedTokenAddress;
             for (
                 uint256 i = 0;
                 i < linearAcceptedTokenAddress.length;
                 i = unsafe_inc(i)
             ) {
                 uint8 _decimals = _getDecimals(_linearAcceptedTokenAddress[i]);
-                sumAmount += _amount[i]/(10**_decimals) * 1e18;
-                sumStaked += totalStaked[i]/(10**_decimals) * 1e18; 
+                sumAmount += (_amount[i] / (10**_decimals)) * 1e18;
+                sumStaked += (totalStaked[i] / (10**_decimals)) * 1e18;
                 // require(
                 //     totalStaked[i] + _amount[i] <= decimalsCap[i],
                 //     "LinearStakingPool: pool is full"
                 // );
             }
-            require(sumAmount+sumStaked<=cap, "LinearStakingPool: pool is full");
+            require(
+                sumAmount + sumStaked <= cap,
+                "LinearStakingPool: pool is full"
+            );
         }
 
         _linearHarvest(account);
