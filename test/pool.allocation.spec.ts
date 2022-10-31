@@ -278,49 +278,6 @@ describe("Pool", () => {
       expect(await mintableToken.balanceOf(account3.address)).to.equal("1000");
     });
 
-    it("Stake - revert case", async () => {
-      const pool2Address = await poolFactory.callStatic.createAllocationPool(
-        [mintableToken.address, fixedToken.address],
-        [distributeToken.address, distributeToken2.address],
-        [toWei("1"), toWei("2")],
-        "100",
-        "20",
-        "1000",
-        time.duration.hours("1"),
-        distributor.address,
-        "10"
-      );
-
-      await poolFactory.createAllocationPool(
-        [mintableToken.address, fixedToken.address],
-        [distributeToken.address, distributeToken2.address],
-        [toWei("1"), toWei("2")],
-        "100",
-        "100",
-        "1000",
-        time.duration.hours("1"),
-        distributor.address,
-        "10"
-      );
-
-      const pool2 = (await ethers.getContractAt(
-        "AllocationPool",
-        pool2Address,
-      )) as AllocationPool;
-
-      await fixedToken.transfer(account1.address, toWei("1000"));
-      await mintableToken.transfer(account1.address, toWei("1000"));
-
-      await distributeToken.transfer(distributor.address, toWei("1375000000"));
-      await distributeToken2.transfer(distributor.address, toWei("1375000000"));
-      await fixedToken.connect(account1).approve(pool2.address, ethers.constants.MaxUint256);
-      await mintableToken.connect(account1).approve(pool2.address, ethers.constants.MaxUint256);
-
-      await expect(
-        pool2.connect(account1).deposit([toWei("10"), toWei("10")])
-      ).to.be.revertedWith("AllocationPool: staked tokens not meet staked token rate")
-    })
-
     it("Withdraw - revert case", async () => {
       const pool2Address = await poolFactory.callStatic.createAllocationPool(
         [mintableToken.address],

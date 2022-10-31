@@ -305,13 +305,8 @@ contract AllocationPool is PausableUpgradeable {
             user.rewardDebt = new uint256[](lpToken.length);
             user.pendingAmount = new uint256[](lpToken.length);
         }
-        uint256[] memory _stakedTokenRate = stakedTokenRate;
-        uint256 shared_times = _amounts[0] / _stakedTokenRate[0];
+
         for (uint256 i = 0; i < lpToken.length; i++) {
-            require(
-                _stakedTokenRate[i] * shared_times == _amounts[i],
-                "AllocationPool: staked tokens not meet staked token rate"
-            );
             if (user.amount[i] > 0) {
                 uint256 pending = (user.amount[i] * accTokenPerShare[i]) /
                     1e18 -
@@ -338,8 +333,6 @@ contract AllocationPool is PausableUpgradeable {
      */
     function withdraw(uint256[] calldata _amounts) external whenNotPaused {
         UserInfo storage user = userInfo[msg.sender];
-        uint256[] memory _stakedTokenRate = stakedTokenRate;
-        uint256 shared_times = _amounts[0] / _stakedTokenRate[0];
 
         if (lockDuration > 0) {
             require(
@@ -359,10 +352,6 @@ contract AllocationPool is PausableUpgradeable {
             require(
                 user.amount[i] >= _amounts[i],
                 "AllocationPool: withdraw not good"
-            );
-            require(
-                _stakedTokenRate[i] * shared_times == _amounts[i],
-                "LinearPool: staked tokens not meet staked token rate"
             );
             uint256 pending = (user.amount[i] * accTokenPerShare[i]) /
                 1e18 -
@@ -426,24 +415,6 @@ contract AllocationPool is PausableUpgradeable {
         }
 
         emit EmergencyWithdraw(msg.sender, user.amount);
-    }
-
-    /**
-     * @notice Safe token transfer function, just in case if rounding error causes pool to not have enough TOKENs.
-     */
-    function safeTokenTransfer(
-        IERC20 token,
-        address _to,
-        uint256 _amount
-    ) internal {
-        address _allocationRewardDistributor = allocationRewardDistributor;
-        uint256 tokenBal = token.balanceOf(_allocationRewardDistributor);
-        require(tokenBal>0, "Insufficent balance in distributor wallet");
-        if (_amount > tokenBal) {
-            token.transferFrom(_allocationRewardDistributor, _to, tokenBal);
-        } else {
-            token.transferFrom(_allocationRewardDistributor, _to, _amount);
-        }
     }
 
     function _getDecimals(address _token) internal view returns (uint8) {
