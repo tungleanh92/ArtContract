@@ -163,21 +163,6 @@ contract AllocationPool is PausableUpgradeable {
     }
 
     /**
-     * @notice Set the reward distributor. Can only be called by the owner.
-     * @param _allocationRewardDistributor the reward distributor
-     */
-    function allocationSetRewardDistributor(address _allocationRewardDistributor)
-        external
-        isMod
-    {
-        require(
-            _allocationRewardDistributor != address(0),
-            "AllocationStakingPool: invalid reward distributor"
-        );
-        allocationRewardDistributor = _allocationRewardDistributor;
-    }
-
-    /**
      * @notice Admin withdraw tokens from a contract
      * @param _token token to withdraw
      * @param _to to user address

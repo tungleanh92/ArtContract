@@ -179,21 +179,6 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
         emit AdminRecoverFund(_token, _to, _amount);
     }
 
-    /**
-     * @notice Set the reward distributor. Can only be called by the owner.
-     * @param _linearRewardDistributor the reward distributor
-     */
-    function linearSetRewardDistributor(address _linearRewardDistributor)
-        external
-        isMod
-    {
-        require(
-            _linearRewardDistributor != address(0),
-            "LinearStakingPool: invalid reward distributor"
-        );
-        linearRewardDistributor = _linearRewardDistributor;
-    }
-
     function linearSetPool() external isMod {
         require(!isEnd, "LinearPool: Pool already ended");
         isEnd = true;
@@ -222,27 +207,6 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
             );
         }
         emit LinearDeposit(account, _amount);
-    }
-
-    /**
-     * @notice Deposit token to earn rewards
-     * @param _amount amount of token to deposit
-     * @param _receiver receiver
-     */
-    function linearDepositSpecifyReceiver(
-        uint256[] calldata _amount,
-        address _receiver
-    ) external nonReentrant whenNotPaused {
-        _linearDeposit(_amount, _receiver);
-
-        for (uint256 i = 0; i < _amount.length; i = unsafe_inc(i)) {
-            linearAcceptedToken[i].safeTransferFrom(
-                msg.sender,
-                address(this),
-                _amount[i]
-            );
-        }
-        emit LinearDeposit(_receiver, _amount);
     }
 
     /**
