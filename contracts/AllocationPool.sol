@@ -69,7 +69,7 @@ contract AllocationPool is PausableUpgradeable {
     // Bock end number
     uint256 public endBlock;
 
-    event PoolEnded();
+    event PoolEnded(address pool);
     event ChangeAllocationPoint(uint256 point);
     event Deposit(address indexed user, uint256[] amount);
     event Withdraw(address indexed user, uint256[] amount);
@@ -200,7 +200,7 @@ contract AllocationPool is PausableUpgradeable {
         updatePool();
         isEnd = true;
         endBlock = block.number;
-        emit PoolEnded();
+        emit PoolEnded(address(this));
     }
 
     /**

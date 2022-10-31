@@ -18,6 +18,8 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
     bytes32 public constant ADMIN = keccak256("ADMIN");
     uint256 private constant ONE_YEAR_IN_SECONDS = 365 days;
 
+    // End pool
+    bool public isEnd;
     // Pool creator
     address public factory;
     // The reward distribution address
@@ -52,8 +54,7 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
     // Allow emergency withdraw feature
     bool public linearAllowEmergencyWithdraw;
 
-    event LinearStop(uint256 stopAt);
-    event LinearStart(uint256 startAt);
+    event LinearEnded(address pool);
     event LinearDeposit(address indexed account, uint256[] amount);
     event LinearWithdraw(address indexed account, uint256[] amount);
     event LinearRewardsHarvested(address indexed account, uint256[] reward);
@@ -193,14 +194,11 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
         linearRewardDistributor = _linearRewardDistributor;
     }
 
-    function linearSetPool(bool _isStop) external isMod {
-        if (_isStop) {
-            endJoinTime = block.timestamp;
-            emit LinearStop(block.timestamp);
-        } else {
-            endJoinTime = 0;
-            emit LinearStart(block.timestamp);
-        }
+    function linearSetPool() external isMod {
+        require(!isEnd, "LinearPool: Pool already ended");
+        isEnd = true;
+        endJoinTime = block.timestamp;
+        emit LinearEnded(address(this));
     }
 
     /**
@@ -457,10 +455,7 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
             "LinearStakingPool: not started yet"
         );
 
-        require(
-            block.timestamp <= endJoinTime || endJoinTime == 0,
-            "LinearStakingPool: already closed"
-        );
+        require(!isEnd, "LinearStakingPool: already closed");
 
         if (cap > 0) {
             uint256 sumAmount = 0;

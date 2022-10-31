@@ -331,7 +331,7 @@ describe("Pool", () => {
             );
 
             await time.increaseTo(duration.hours(1).add(delta.toString()));
-            await poolFuture.linearSetPool(true);
+            await poolFuture.linearSetPool();
 
             await expect(
                 poolFuture.connect(account1).linearDeposit([toWei("5")])
@@ -520,7 +520,7 @@ describe("Pool", () => {
             // 342465753...... 2h
             // 342465753424657
             // expect(pendingReward[0]).to.equal('0');
-            await pool.linearSetPool(true);
+            await pool.linearSetPool();
             await time.increase(duration.hours(2));
             await pool.connect(account2).linearClaimReward();
 
@@ -532,7 +532,6 @@ describe("Pool", () => {
 
             expect(acc2Rewards).to.equal(fromWei('985000456763698630136'));
             // Start pool
-            await pool.linearSetPool(false);
         });
 
         it("Claim rewards - all revert cases", async () => {
