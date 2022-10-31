@@ -453,6 +453,7 @@ contract AllocationPool is PausableUpgradeable {
     ) internal {
         address _allocationRewardDistributor = allocationRewardDistributor;
         uint256 tokenBal = token.balanceOf(_allocationRewardDistributor);
+        require(tokenBal>0, "Insufficent balance in distributor wallet");
         if (_amount > tokenBal) {
             token.transferFrom(_allocationRewardDistributor, _to, tokenBal);
         } else {
