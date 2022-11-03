@@ -117,7 +117,7 @@ contract AllocationPool is PausableUpgradeable {
                 _rewardLength == _stakedTokenRate.length,
             "AllocationPool: invalid token length"
         );
-        
+
         require(
             _rewardDistributor != address(0),
             "AllocationStakingPool: invalid reward distributor"
@@ -134,7 +134,7 @@ contract AllocationPool is PausableUpgradeable {
             totalStaked.push(0);
 
             uint8 _decimals = _getDecimals(_rewardToken[i]);
-            uint256 _formated = _tokenPerBlock * (10**(_decimals));
+            uint256 _formated = ((_tokenPerBlock * (10**(_decimals))) / 1e18);
             decimalTokenPerBlock.push(_formated);
         }
         tokenPerBlock = _tokenPerBlock;
@@ -246,11 +246,13 @@ contract AllocationPool is PausableUpgradeable {
         uint256 caculatedBlock = isEnd == true ? endBlock : block.number;
 
         for (uint256 i = 0; i < lpSupply.length; i++) {
-
             if (caculatedBlock > lastRewardBlock && lpSupply[i] != 0) {
-                uint256 multiplier = 
-                    getMultiplier(lastRewardBlock, caculatedBlock);
-                uint256 tokenReward = ((multiplier * decimalTokenPerBlock[i]) / sum) * _stakedTokenRate[i];
+                uint256 multiplier = getMultiplier(
+                    lastRewardBlock,
+                    caculatedBlock
+                );
+                uint256 tokenReward = ((multiplier * decimalTokenPerBlock[i]) /
+                    sum) * _stakedTokenRate[i];
 
                 _accTokenPerShare[i] =
                     _accTokenPerShare[i] +
@@ -393,7 +395,11 @@ contract AllocationPool is PausableUpgradeable {
             user.pendingAmount[i] = 0;
             user.rewardDebt[i] = (user.amount[i] * accTokenPerShare[i]) / 1e18;
             if (pending > 0)
-                rewardToken[i].safeTransferFrom(allocationRewardDistributor, msg.sender, pending);
+                rewardToken[i].safeTransferFrom(
+                    allocationRewardDistributor,
+                    msg.sender,
+                    pending
+                );
 
             _claims[i] = pending;
         }
