@@ -370,36 +370,6 @@ describe("Pool", () => {
             expect(acc1Amounts).to.deep.equal([toWei("0")]);
         });
 
-        it("withdraw", async () => {
-            // After 2 hours user 1 withdraw
-            // Reward = 5 wei * 2 * 3600 * 10 / 31536000 = 114155251141552
-
-            await time.increaseTo(duration.hours(2).add(delta.toString()));
-
-            await pool.connect(account1).linearWithdraw([toWei("5")]);
-
-            let acc1Amounts = await (await pool.linearBalanceOf(account1.address)).map(e => e.toString());
-
-            expect(acc1Amounts).to.deep.equal([toWei("0")]);
-            const acc1Reward = await mintableToken.balanceOf(account1.address);
-
-            // After 5 hours user 2 withdraw
-            // Reward = 5 wei * 5 * 3600 * 10 / 31536000 = 285372272957889
-
-            await time.increaseTo(duration.hours(5).add(delta.toString()));
-
-            await pool.connect(account2).linearWithdraw([toWei("4")]);
-
-            let acc2Amounts = await (await pool.linearBalanceOf(account2.address)).map(e => e.toString());
-            expect(acc2Amounts).to.deep.equal([toWei("1")]);
-            const acc2Reward = await mintableToken.balanceOf(account2.address);
-
-            // balance of account1 is 990000000000000000000 + 5*10^18 + 114155251141552
-            expect(acc1Reward).to.equal("995000114155251141552");
-            // balance of account1 is 995000000000000000000 + 4*10^18 + 285372272957889
-            expect(acc2Reward).to.equal("999000285372272957889");
-        });
-
         it("withdraw - all revert cases", async () => {
 
             // Withdraw before lock time: 30s after staked
