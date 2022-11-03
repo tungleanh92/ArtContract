@@ -287,10 +287,6 @@ describe("Pool", () => {
 
             expect(acc1Amounts).to.deep.equal([toWei("5")]).to.deep.equal(acc2Amounts);
 
-            await pool.connect(account1).linearDepositSpecifyReceiver([toWei("5")], account2.address);
-            acc2Amounts = await (await pool.linearBalanceOf(account2.address)).map(e => e.toString());
-            expect(acc2Amounts).to.deep.equal([toWei("10")])
-
         });
 
         it("Stake 5_cap pool", async () => {
@@ -331,7 +327,7 @@ describe("Pool", () => {
             );
 
             await time.increaseTo(duration.hours(1).add(delta.toString()));
-            await poolFuture.linearSetPool(true);
+            await poolFuture.linearSetPool();
 
             await expect(
                 poolFuture.connect(account1).linearDeposit([toWei("5")])
@@ -520,7 +516,7 @@ describe("Pool", () => {
             // 342465753...... 2h
             // 342465753424657
             // expect(pendingReward[0]).to.equal('0');
-            await pool.linearSetPool(true);
+            await pool.linearSetPool();
             await time.increase(duration.hours(2));
             await pool.connect(account2).linearClaimReward();
 
@@ -532,7 +528,6 @@ describe("Pool", () => {
 
             expect(acc2Rewards).to.equal(fromWei('985000456763698630136'));
             // Start pool
-            await pool.linearSetPool(false);
         });
 
         it("Claim rewards - all revert cases", async () => {
@@ -574,19 +569,6 @@ describe("Pool", () => {
             await expect(pool.connect(account1).pauseContract()).not.to.be.reverted;
             await expect(pool.connect(account1).unpauseContract()).not.to.be.reverted;
 
-        });
-
-        it("Set pool status", async () => {
-
-            await expect(
-                pool.connect(account1).linearSetRewardDistributor(account2.address)
-            ).to.be.revertedWith(
-                "LinearStakingPool: forbidden"
-            );
-
-
-            await poolFactory.grantRole(MOD_ROLE, account1.address);
-            await expect(pool.connect(account1).linearSetRewardDistributor(account2.address)).not.to.be.reverted;
         });
 
         it("Admin withdraw", async () => {
