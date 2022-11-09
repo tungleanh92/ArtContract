@@ -247,7 +247,7 @@ contract AllocationPool is PausableUpgradeable {
         uint256 caculatedBlock = isEnd == true ? endBlock : block.number;
 
         for (uint256 i = 0; i < lpSupply.length; i++) {
-            if (caculatedBlock > lastRewardBlock && lpSupply[i] != 0) {
+            if (caculatedBlock >= lastRewardBlock && lpSupply[i] != 0) {
                 uint256 multiplier = getMultiplier(
                     lastRewardBlock,
                     caculatedBlock
