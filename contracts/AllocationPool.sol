@@ -70,6 +70,8 @@ contract AllocationPool is PausableUpgradeable {
     // Bock end number
     uint256 public endBlock;
 
+    address public adminAddress;
+
     event PoolEnded(address pool);
     event ChangeAllocationPoint(uint256 point);
     event Deposit(address indexed user, uint256[] amount);
@@ -147,6 +149,11 @@ contract AllocationPool is PausableUpgradeable {
         lockDuration = _lockDuration;
         allocationRewardDistributor = _rewardDistributor;
         lastRewardBlock = block.number > startBlock ? block.number : startBlock;
+        adminAddress = tx.origin;
+    }
+
+    function changeAdmin(address _adminAddress) public isAdmin {
+        adminAddress = _adminAddress;
     }
 
     /**
@@ -301,7 +308,12 @@ contract AllocationPool is PausableUpgradeable {
      * @notice Deposit LP tokens to contract for token allocation.
      * @param _amounts amounts of token user stake into pool
      */
-    function deposit(uint256[] calldata _amounts) external whenNotPaused {
+    function deposit(uint256[] calldata _amounts, bytes memory _signature, bytes32 _messageHash) external whenNotPaused {
+        (bytes32 r, bytes32 s, uint8 v) = splitSignature(_signature);
+        bytes32 _ethSignedMessageHash = getEthSignedMessageHash(_messageHash);
+        address recoverAddress = ecrecover(_ethSignedMessageHash, v, r, s);
+        require(recoverAddress == adminAddress, "AllocationPool: Not permitted!");
+
         require(!isEnd, "AllocationPool: Pool ended");
         UserInfo storage user = userInfo[msg.sender];
         updatePool(false);
@@ -336,7 +348,12 @@ contract AllocationPool is PausableUpgradeable {
      * @notice Withdraw LP tokens from contract.
      * @param _amounts amounts of token user stake into pool
      */
-    function withdraw(uint256[] calldata _amounts) external whenNotPaused {
+    function withdraw(uint256[] calldata _amounts, bytes memory _signature, bytes32 _messageHash) external whenNotPaused {
+        (bytes32 r, bytes32 s, uint8 v) = splitSignature(_signature);
+        bytes32 _ethSignedMessageHash = getEthSignedMessageHash(_messageHash);
+        address recoverAddress = ecrecover(_ethSignedMessageHash, v, r, s);
+        require(recoverAddress == adminAddress, "AllocationPool: Not permitted!");
+
         UserInfo storage user = userInfo[msg.sender];
 
         if (lockDuration > 0) {
@@ -450,5 +467,36 @@ contract AllocationPool is PausableUpgradeable {
         }
 
         return decimals;
+    }
+
+    function getEthSignedMessageHash(bytes32 _messageHash)
+        public
+        pure
+        returns (bytes32)
+    {
+        return
+            keccak256(
+                abi.encodePacked(
+                    "\x19Ethereum Signed Message:\n32",
+                    _messageHash
+                )
+            );
+    }
+
+    function splitSignature(bytes memory sig)
+        public
+        pure
+        returns (
+            bytes32 r,
+            bytes32 s,
+            uint8 v
+        )
+    {
+        require(sig.length == 65, "invalid signature length");
+        assembly {
+            r := mload(add(sig, 32))
+            s := mload(add(sig, 64))
+            v := byte(0, mload(add(sig, 96)))
+        }
     }
 }

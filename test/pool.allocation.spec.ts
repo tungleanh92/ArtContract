@@ -93,14 +93,24 @@ describe("Pool", () => {
       await distributeToken.transfer(pool.address, toWei("1375000000"));
       // console.log(await (await distributeToken.balanceOf(deployer.address)).toString());
 
+      expect(await pool.adminAddress()).to.be.equal(wallets[0].address);
 
       // nothing to withdraw
       await expect(
         pool.connect(account1).emergencyWithdraw()
       ).to.not.be.reverted;
 
+      // fake sign
+      const messageHash = ethers.utils.id("randomString");
+      const messageHashBytes = ethers.utils.arrayify(messageHash)
+      let flatSig = await account1.signMessage(messageHashBytes);
+      await expect(pool.connect(account1).deposit(["100"], flatSig, messageHash)).to.be.revertedWith('AllocationPool: Not permitted!');
+
+      // sign
+      flatSig = await deployer.signMessage(messageHashBytes);
+
       // 100 per block farming rate starting at block 100 with bonus until block 1000
-      await pool.connect(account1).deposit(["100"]);
+      await pool.connect(account1).deposit(["100"], flatSig, messageHash);
       expect(await mintableToken.balanceOf(account1.address)).to.equal("900");
 
       await pool.connect(account1).emergencyWithdraw();
@@ -146,20 +156,24 @@ describe("Pool", () => {
       await distributeToken.transfer(distributor.address, toWei("1375000000"));
       await distributeToken.connect(distributor).approve(poolAddress, ethers.constants.MaxUint256);
 
+      // sign
+      const messageHash = ethers.utils.id("randomString");
+      const messageHashBytes = ethers.utils.arrayify(messageHash)
+      const flatSig = await deployer.signMessage(messageHashBytes);
 
       // 10 per block farming rate starting at block 100 with bonus until block 1000
-      await pool.connect(account1).deposit(["100"]);
+      await pool.connect(account1).deposit(["100"], flatSig, messageHash);
       await time.advanceBlockTo(89);
 
-      await pool.connect(account1).deposit(["0"]); // block 90
+      await pool.connect(account1).deposit(["0"], flatSig, messageHash); // block 90
       expect(await distributeToken.balanceOf(account1.address)).to.equal("0");
       await time.advanceBlockTo(94);
 
-      await pool.connect(account1).deposit(["0"]); // block 95
+      await pool.connect(account1).deposit(["0"], flatSig, messageHash); // block 95
       expect(await distributeToken.balanceOf(account1.address)).to.equal("0");
       await time.advanceBlockTo(99);
 
-      await pool.connect(account1).deposit(["0"]); // block 100
+      await pool.connect(account1).deposit(["0"], flatSig, messageHash); // block 100
       expect(await distributeToken.balanceOf(account1.address)).to.equal("0");
       await time.advanceBlockTo(100);
 
@@ -211,26 +225,29 @@ describe("Pool", () => {
       await mintableToken.connect(account3).approve(poolAddress, ethers.constants.MaxUint256);
       await distributeToken.transfer(distributor.address, toWei("1375000000"));
 
-      
+      // sign
+      const messageHash = ethers.utils.id("randomString");
+      const messageHashBytes = ethers.utils.arrayify(messageHash)
+      const flatSig = await deployer.signMessage(messageHashBytes);
 
       // 10 per block farming rate starting at block 200 with bonus until block 1000
       // user 1 deposits 10 LPs at block 210
       await time.advanceBlockTo(209);
 
-      await pool.connect(account1).deposit(["10"]); // block 210
+      await pool.connect(account1).deposit(["10"], flatSig, messageHash); // block 210
       // user 2  deposits 20 LPs at block 214
       await time.advanceBlockTo(213);
-      await pool.connect(account2).deposit(["20"]); // block 214
+      await pool.connect(account2).deposit(["20"], flatSig, messageHash); // block 214
       // user 3 deposits 30 LPs at block 218
       await time.advanceBlockTo(217);
-      await pool.connect(account3).deposit(["30"]); // block 218
+      await pool.connect(account3).deposit(["30"], flatSig, messageHash); // block 218
 
       // user 1 deposits 10 more LPs at block 220. At this point:
       //   user 1 should have: 10^18 * (4*1000 + 4*1/3*1000 + 2*1/6*1000) = 5666666666666666666666
 
       await time.advanceBlockTo(219);
-      await pool.connect(account1).deposit(["10"]); // block 220
-      
+      await pool.connect(account1).deposit(["10"], flatSig, messageHash); // block 220
+
       let acc1Rewards = await (await pool.pendingToken(account1.address)).map(e => e.toString())
       expect(acc1Rewards).to.deep.equal(["5666666666666666666666"]);
       expect(await distributeToken.balanceOf(account2.address)).to.equal("0");
@@ -239,7 +256,7 @@ describe("Pool", () => {
       // user 2 withdraws 5 LPs at block 230. At this point:
       //   user 2 should have: (4*2/3*1000 + 2*2/6*1000 + 10*2/7*1000) * 10^18 = 6190476190476190476190
       await time.advanceBlockTo(229);
-      await pool.connect(account2).withdraw(["5"]);
+      await pool.connect(account2).withdraw(["5"], flatSig, messageHash);
       let acc2Rewards = await (await pool.pendingToken(account2.address)).map(e => e.toString())
       expect(acc1Rewards).to.deep.equal(["5666666666666666666666"]);
       expect(acc2Rewards).to.deep.equal(["6190476190476190476190"]);
@@ -250,14 +267,14 @@ describe("Pool", () => {
       // user 3 withdraws 30 LPs at block 260.
 
       await time.advanceBlockTo(239);
-      await pool.connect(account1).withdraw(["20"]);
+      await pool.connect(account1).withdraw(["20"], flatSig, messageHash);
 
 
       await time.advanceBlockTo(249);
-      await pool.connect(account2).withdraw(["15"]);
+      await pool.connect(account2).withdraw(["15"], flatSig, messageHash);
 
       await time.advanceBlockTo(259);
-      await pool.connect(account3).withdraw(["30"]);
+      await pool.connect(account3).withdraw(["30"], flatSig, messageHash);
 
 
       acc1Rewards = await (await pool.pendingToken(account1.address)).map(e => e.toString())
@@ -308,11 +325,16 @@ describe("Pool", () => {
         pool2Address,
       )) as AllocationPool;
 
+      // sign
+      const messageHash = ethers.utils.id("randomString");
+      const messageHashBytes = ethers.utils.arrayify(messageHash)
+      const flatSig = await deployer.signMessage(messageHashBytes);
+
       await mintableToken.connect(account1).approve(pool2Address, ethers.constants.MaxUint256);
-      await pool.connect(account1).deposit(["1"]);
+      await pool.connect(account1).deposit(["1"], flatSig, messageHash);
 
       await expect(
-        pool.connect(account1).withdraw(["1"])
+        pool.connect(account1).withdraw(["1"], flatSig, messageHash)
       ).to.be.revertedWith(
         "AllocationStakingPool: still locked"
       );
@@ -390,9 +412,14 @@ describe("Pool", () => {
       await fixedToken.connect(account1).approve(pool2.address, ethers.constants.MaxUint256);
       await mintableToken.connect(account1).approve(pool2.address, ethers.constants.MaxUint256);
 
+      // sign
+      const messageHash = ethers.utils.id("randomString");
+      const messageHashBytes = ethers.utils.arrayify(messageHash)
+      const flatSig = await deployer.signMessage(messageHashBytes);
+
       // user 1 deposits 10 LPs at block 410
       await time.advanceBlockTo(409);
-      await pool2.connect(account1).deposit(["10", "20"]);
+      await pool2.connect(account1).deposit(["10", "20"], flatSig, messageHash);
 
       await time.increase(time.duration.hours("1"));
       await time.advanceBlockTo(419);
@@ -487,23 +514,28 @@ describe("Pool", () => {
       await mintableToken.connect(account3).approve(poolAddress, ethers.constants.MaxUint256);
       await distributeToken.transfer(distributor.address, toWei("1375000000"));
 
+      // sign
+      const messageHash = ethers.utils.id("randomString");
+      const messageHashBytes = ethers.utils.arrayify(messageHash)
+      const flatSig = await deployer.signMessage(messageHashBytes);
+
       await time.advanceBlockTo(998);
       // deposit 10 at block 990
-      await pool.connect(account1).deposit(["10"]);
+      await pool.connect(account1).deposit(["10"], flatSig, messageHash);
 
       await time.increase(time.duration.hours("1"));
       await time.advanceBlockTo(1009);
       // withdraw at block 1010 => 990 ~ 1000 has multiper, 1001 ~ 1010 no multiper
-      await pool.connect(account1).withdraw(["10"]);
+      await pool.connect(account1).withdraw(["10"], flatSig, messageHash);
 
       // reward should be 10 * 10 * 100 * 10^18 + 10 * 10 * 10^18
       expect((await pool.pendingToken(account1.address))[0].toString()).to.equal(toWei("1100"));
       // deposit 10 at block 1100
       await time.advanceBlockTo(1099);
-      await pool.connect(account1).deposit(["10"]);
+      await pool.connect(account1).deposit(["10"], flatSig, messageHash);
 
       await time.advanceBlockTo(1109);
-      await pool.connect(account1).deposit(["0"]);
+      await pool.connect(account1).deposit(["0"], flatSig, messageHash);
       // reward should be 10 * 10 * 10^18 + 1100 * 10^18
       expect((await pool.pendingToken(account1.address))[0].toString()).to.equal(toWei("1200"));
     })
@@ -553,7 +585,7 @@ describe("Pool", () => {
     //   expect(await distributeToken.balanceOf(account1.address)).to.equal("100000");
     // })
 
-    it("Set pool distributor", async () => {
+    it("Change admin", async () => {
       const poolAddress = await poolFactory.callStatic.createAllocationPool(
         [mintableToken.address],
         [distributeToken.address],
@@ -582,6 +614,23 @@ describe("Pool", () => {
         "AllocationPool",
         poolAddress,
       )) as AllocationPool;
+
+      await mintableToken.connect(account2).approve(poolAddress, ethers.constants.MaxUint256);
+      
+      expect(await pool.adminAddress()).to.be.equal(wallets[0].address);
+
+      await pool.changeAdmin(account1.address);
+
+      const messageHash = ethers.utils.id("randomString");
+      const messageHashBytes = ethers.utils.arrayify(messageHash)
+      let flatSig = await wallets[0].signMessage(messageHashBytes);
+      await expect(pool.connect(account1).deposit(["100"], flatSig, messageHash)).to.be.revertedWith('AllocationPool: Not permitted!');
+
+      expect(await pool.adminAddress()).to.be.equal(account1.address);
+
+      // sign
+      flatSig = await account1.signMessage(messageHashBytes);
+      pool.connect(account2).deposit(["100"], flatSig, messageHash);
     });
   })
 })
