@@ -183,7 +183,7 @@ contract AllocationPool is PausableUpgradeable {
      */
     function endPool() external isMod {
         require(!isEnd, "AllocationPool: Pool already ended");
-        updatePool();
+        updatePool(true);
         isEnd = true;
         endBlock = block.number;
         emit PoolEnded(address(this));
@@ -269,7 +269,7 @@ contract AllocationPool is PausableUpgradeable {
     /**
      * @notice Update reward variables of the given pool to be up-to-date.
      */
-    function updatePool() public whenNotPaused {
+    function updatePool(bool _isEnd) public whenNotPaused {
         require(!isEnd, "AllocationPool: Pool ended");
         if (block.number <= lastRewardBlock) {
             return;
@@ -285,6 +285,9 @@ contract AllocationPool is PausableUpgradeable {
                 continue;
             }
             uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
+            if (_isEnd == true) {
+                multiplier = getMultiplier(lastRewardBlock, block.number - 1);
+            }
             uint256 tokenReward = ((multiplier * decimalTokenPerBlock[i]) /
                 sum) * _stakedTokenRate[i];
             accTokenPerShare[i] =
@@ -301,7 +304,7 @@ contract AllocationPool is PausableUpgradeable {
     function deposit(uint256[] calldata _amounts) external whenNotPaused {
         require(!isEnd, "AllocationPool: Pool ended");
         UserInfo storage user = userInfo[msg.sender];
-        updatePool();
+        updatePool(false);
         if (user.amount.length == 0) {
             user.amount = new uint256[](lpToken.length);
             user.rewardDebt = new uint256[](lpToken.length);
@@ -343,7 +346,7 @@ contract AllocationPool is PausableUpgradeable {
             );
         }
         if (!isEnd) {
-            updatePool();
+            updatePool(false);
         }
         if (user.amount.length == 0) {
             user.amount = new uint256[](lpToken.length);
@@ -379,7 +382,7 @@ contract AllocationPool is PausableUpgradeable {
             );
         }
         if (!isEnd) {
-            updatePool();
+            updatePool(false);
         }
         if (user.amount.length == 0) {
             user.amount = new uint256[](lpToken.length);

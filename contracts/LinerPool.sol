@@ -309,7 +309,6 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
             : 0;
 
         uint256 sumStaked = 0;
-        address[] memory _acceptToken = linearAcceptedTokenAddress;
         uint8[] memory _decimalsToken = decimalsToken;
         for (uint256 i = 0; i < stakingData.balance.length; i = unsafe_inc(i)) {
             sumStaked += ((1e18 / (10**_decimalsToken[i])) *
