@@ -115,6 +115,9 @@ contract PoolFactory is IPoolFactory, AccessControl {
     ) external returns (address poolAddress) {
         require(hasRole(ADMIN, msg.sender), "PoolFactory: require ADMIN role");
 
+        uint256 clear_apr_decimal = _APR / 1e18;
+        require(0 <= clear_apr_decimal && clear_apr_decimal < 1e10, "PoolFactory: APR must be less than 1e10");
+
         poolAddress = _deployLiner(
             _stakeToken,
             _saleToken,

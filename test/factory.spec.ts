@@ -87,6 +87,19 @@ describe("Pool factory", () => {
         [mintableToken.address],
         [mintableToken.address],
         ["1"],
+        toWei("10000000000"),
+        0,
+        (await time.latest()).toNumber(),
+        0,
+        signer,
+      ),
+    ).to.be.revertedWith("PoolFactory: APR must be less than 1e10");
+
+    await expect(
+      poolFactory.createLinerPool(
+        [mintableToken.address],
+        [mintableToken.address],
+        ["1"],
         toWei("10"),
         0,
         (await time.latest()).toNumber(),
