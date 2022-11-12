@@ -72,6 +72,8 @@ contract AllocationPool is PausableUpgradeable {
 
     address public adminAddress;
 
+    uint8 public nonce;
+
     event PoolEnded(address pool);
     event ChangeAllocationPoint(uint256 point);
     event Deposit(address indexed user, uint256[] amount);
@@ -150,6 +152,7 @@ contract AllocationPool is PausableUpgradeable {
         allocationRewardDistributor = _rewardDistributor;
         lastRewardBlock = block.number > startBlock ? block.number : startBlock;
         adminAddress = tx.origin;
+        nonce = 1;
     }
 
     function changeAdmin(address _adminAddress) public isAdmin {
@@ -308,7 +311,8 @@ contract AllocationPool is PausableUpgradeable {
      * @notice Deposit LP tokens to contract for token allocation.
      * @param _amounts amounts of token user stake into pool
      */
-    function deposit(uint256[] calldata _amounts, bytes memory _signature, bytes32 _messageHash) external whenNotPaused {
+    function deposit(uint256[] calldata _amounts, bytes memory _signature, string memory _message) external whenNotPaused {
+        bytes32 _messageHash = getMessageHash(_message);
         (bytes32 r, bytes32 s, uint8 v) = splitSignature(_signature);
         bytes32 _ethSignedMessageHash = getEthSignedMessageHash(_messageHash);
         address recoverAddress = ecrecover(_ethSignedMessageHash, v, r, s);
@@ -341,6 +345,8 @@ contract AllocationPool is PausableUpgradeable {
             totalStaked[i] += _amounts[i];
         }
         user.joinTime = block.timestamp;
+
+        nonce = nonce + 1;
         emit Deposit(msg.sender, _amounts);
     }
 
@@ -348,7 +354,8 @@ contract AllocationPool is PausableUpgradeable {
      * @notice Withdraw LP tokens from contract.
      * @param _amounts amounts of token user stake into pool
      */
-    function withdraw(uint256[] calldata _amounts, bytes memory _signature, bytes32 _messageHash) external whenNotPaused {
+    function withdraw(uint256[] calldata _amounts, bytes memory _signature, string memory _message) external whenNotPaused {
+        bytes32 _messageHash = getMessageHash(_message);
         (bytes32 r, bytes32 s, uint8 v) = splitSignature(_signature);
         bytes32 _ethSignedMessageHash = getEthSignedMessageHash(_messageHash);
         address recoverAddress = ecrecover(_ethSignedMessageHash, v, r, s);
@@ -384,6 +391,8 @@ contract AllocationPool is PausableUpgradeable {
             user.rewardDebt[i] = (user.amount[i] * accTokenPerShare[i]) / 1e18;
             lpToken[i].safeTransfer(address(msg.sender), _amounts[i]);
         }
+
+        nonce = nonce + 1;
         emit Withdraw(msg.sender, _amounts);
     }
 
@@ -470,7 +479,7 @@ contract AllocationPool is PausableUpgradeable {
     }
 
     function getEthSignedMessageHash(bytes32 _messageHash)
-        public
+        private
         pure
         returns (bytes32)
     {
@@ -484,7 +493,7 @@ contract AllocationPool is PausableUpgradeable {
     }
 
     function splitSignature(bytes memory sig)
-        public
+        private
         pure
         returns (
             bytes32 r,
@@ -498,5 +507,11 @@ contract AllocationPool is PausableUpgradeable {
             s := mload(add(sig, 64))
             v := byte(0, mload(add(sig, 96)))
         }
+    }
+
+    function getMessageHash(
+        string memory _message
+    ) private view returns (bytes32) {
+        return keccak256(abi.encodePacked(_message, nonce));
     }
 }
