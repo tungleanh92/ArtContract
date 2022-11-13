@@ -8,7 +8,7 @@ interface IPoolFactory {
     );
 
     event AllocationPoolCreated(
-        address indexed LinerPoolAddress
+        address indexed AllocationPoolAddress
     );
 
     event ChangeLinerImpl(
@@ -17,6 +17,10 @@ interface IPoolFactory {
 
     event ChangeAllocationImpl(
         address LinerImplAddress
+    );
+
+    event ChangeSigner(
+        address signer
     );
 
     struct LinerParams {
@@ -43,6 +47,7 @@ interface IPoolFactory {
         uint256 tokenPerBlock;
     }
 
+    function signerAddress() external view returns(address);
 
     function getLinerParameters()
         external

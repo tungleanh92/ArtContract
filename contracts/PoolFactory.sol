@@ -17,7 +17,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
     LinerParams public linerParameters;
     AllocationParams public allocationParameters;
 
-    address public adminAddress;
+    address public override signerAddress;
 
     function getLinerParameters() 
             external 
@@ -85,7 +85,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
 
         linerImpl = _linerImpl;
         allocationImpl = _allocImpl;
-        adminAddress = msg.sender;
+        signerAddress = msg.sender;
     }
 
     function changeLinerImpl(LinearPool _linerImpl) external {
@@ -220,8 +220,9 @@ contract PoolFactory is IPoolFactory, AccessControl {
         delete allocationParameters;
     }
 
-    function changeAdmin(address _adminAddress) external {
+    function changeSigner(address _newSigner) external {
         require(hasRole(ADMIN, msg.sender), "PoolFactory: require ADMIN role");
-        adminAddress = _adminAddress;
+        signerAddress = _newSigner;
+        emit ChangeSigner(_newSigner);
     }
 }

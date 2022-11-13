@@ -4,6 +4,7 @@ pragma solidity 0.8.4;
 import "./interfaces/IPoolFactory.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol";
@@ -69,10 +70,6 @@ contract AllocationPool is PausableUpgradeable {
     uint256[] public decimalTokenPerBlock;
     // Bock end number
     uint256 public endBlock;
-
-    address public adminAddress;
-
-    uint8 public nonce;
 
     event PoolEnded(address pool);
     event ChangeAllocationPoint(uint256 point);
@@ -151,12 +148,6 @@ contract AllocationPool is PausableUpgradeable {
         lockDuration = _lockDuration;
         allocationRewardDistributor = _rewardDistributor;
         lastRewardBlock = block.number > startBlock ? block.number : startBlock;
-        adminAddress = tx.origin;
-        nonce = 1;
-    }
-
-    function changeAdmin(address _adminAddress) public isAdmin {
-        adminAddress = _adminAddress;
     }
 
     /**
@@ -311,14 +302,15 @@ contract AllocationPool is PausableUpgradeable {
      * @notice Deposit LP tokens to contract for token allocation.
      * @param _amounts amounts of token user stake into pool
      */
-    function deposit(uint256[] calldata _amounts, bytes memory _signature, string memory _message) external whenNotPaused {
-        bytes32 _messageHash = getMessageHash(_message);
-        (bytes32 r, bytes32 s, uint8 v) = splitSignature(_signature);
-        bytes32 _ethSignedMessageHash = getEthSignedMessageHash(_messageHash);
-        address recoverAddress = ecrecover(_ethSignedMessageHash, v, r, s);
-        require(recoverAddress == adminAddress, "AllocationPool: Not permitted!");
-
+    function deposit(uint256[] calldata _amounts, bytes calldata _signature) external whenNotPaused {
+        bytes32 _messageHash = getMessageHash(_amounts, _msgSender());
+        
         require(!isEnd, "AllocationPool: Pool ended");
+        require(
+                _verifySignature(_messageHash, _signature),
+                "AllocationPool: invalid signature"
+        );
+
         UserInfo storage user = userInfo[msg.sender];
         updatePool(false);
         if (user.amount.length == 0) {
@@ -346,7 +338,6 @@ contract AllocationPool is PausableUpgradeable {
         }
         user.joinTime = block.timestamp;
 
-        nonce = nonce + 1;
         emit Deposit(msg.sender, _amounts);
     }
 
@@ -354,12 +345,14 @@ contract AllocationPool is PausableUpgradeable {
      * @notice Withdraw LP tokens from contract.
      * @param _amounts amounts of token user stake into pool
      */
-    function withdraw(uint256[] calldata _amounts, bytes memory _signature, string memory _message) external whenNotPaused {
-        bytes32 _messageHash = getMessageHash(_message);
-        (bytes32 r, bytes32 s, uint8 v) = splitSignature(_signature);
-        bytes32 _ethSignedMessageHash = getEthSignedMessageHash(_messageHash);
-        address recoverAddress = ecrecover(_ethSignedMessageHash, v, r, s);
-        require(recoverAddress == adminAddress, "AllocationPool: Not permitted!");
+    function withdraw(uint256[] calldata _amounts, bytes calldata _signature) external whenNotPaused {
+        bytes32 _messageHash = getMessageHash(_amounts, _msgSender());
+        
+        require(!isEnd, "AllocationPool: Pool ended");
+        require(
+                _verifySignature(_messageHash, _signature),
+                "AllocationPool: invalid signature"
+        );
 
         UserInfo storage user = userInfo[msg.sender];
 
@@ -392,7 +385,6 @@ contract AllocationPool is PausableUpgradeable {
             lpToken[i].safeTransfer(address(msg.sender), _amounts[i]);
         }
 
-        nonce = nonce + 1;
         emit Withdraw(msg.sender, _amounts);
     }
 
@@ -478,40 +470,45 @@ contract AllocationPool is PausableUpgradeable {
         return decimals;
     }
 
-    function getEthSignedMessageHash(bytes32 _messageHash)
-        private
-        pure
-        returns (bytes32)
-    {
+    // Using Openzeppelin ECDSA cryptography library
+
+    function getMessageHash(
+        uint256[] calldata _amounts,
+        address _user
+    ) public pure returns (bytes32) {
         return
             keccak256(
                 abi.encodePacked(
-                    "\x19Ethereum Signed Message:\n32",
-                    _messageHash
+                    _amounts,
+                    _user
                 )
             );
     }
 
-    function splitSignature(bytes memory sig)
-        private
-        pure
-        returns (
-            bytes32 r,
-            bytes32 s,
-            uint8 v
-        )
-    {
-        require(sig.length == 65, "invalid signature length");
-        assembly {
-            r := mload(add(sig, 32))
-            s := mload(add(sig, 64))
-            v := byte(0, mload(add(sig, 96)))
-        }
+    // Verify signature function
+    function _verifySignature(
+        bytes32 _msgHash,
+        bytes calldata signature
+    ) public view returns (bool) {
+        bytes32 ethSignedMessageHash = getEthSignedMessageHash(_msgHash);
+
+        return getSignerAddress(ethSignedMessageHash, signature) == IPoolFactory(factory).signerAddress();
     }
 
-    function getMessageHash(
-        string memory _message
-    ) private view returns (bytes32) {
-        return keccak256(abi.encodePacked(_message, nonce));
+
+    function getSignerAddress(bytes32 _messageHash, bytes memory _signature)
+        public
+        pure
+        returns (address)
+    {
+        return ECDSA.recover(_messageHash, _signature);
+    }
+
+    function getEthSignedMessageHash(bytes32 _messageHash)
+        public
+        pure
+        returns (bytes32)
+    {
+        return ECDSA.toEthSignedMessageHash(_messageHash);
     }
 }
