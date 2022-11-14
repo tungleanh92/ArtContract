@@ -44,7 +44,7 @@ describe("Pool factory", () => {
       .grantRole(MOD_ROLE, await notOwner.getAddress());
     await expect(tryChange).to.be.reverted;
 
-    expect(await poolFactory.adminAddress()).to.be.equal(wallets[0].address);
+    expect(await poolFactory.signerAddress()).to.be.equal(wallets[0].address);
 
     await poolFactory.grantRole(MOD_ROLE, await newOwner.getAddress());
     expect(
