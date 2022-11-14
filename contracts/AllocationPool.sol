@@ -270,7 +270,7 @@ contract AllocationPool is PausableUpgradeable {
     /**
      * @notice Update reward variables of the given pool to be up-to-date.
      */
-    function updatePool(bool _isEnd) public whenNotPaused {
+    function updatePool(bool _isEnd) internal whenNotPaused {
         require(!isEnd, "AllocationPool: Pool ended");
         if (block.number <= lastRewardBlock) {
             return;
