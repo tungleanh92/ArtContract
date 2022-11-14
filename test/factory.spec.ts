@@ -44,6 +44,8 @@ describe("Pool factory", () => {
       .grantRole(MOD_ROLE, await notOwner.getAddress());
     await expect(tryChange).to.be.reverted;
 
+    expect(await poolFactory.signerAddress()).to.be.equal(wallets[0].address);
+
     await poolFactory.grantRole(MOD_ROLE, await newOwner.getAddress());
     expect(
       await poolFactory.hasRole(MOD_ROLE, await newOwner.getAddress()),
@@ -79,6 +81,19 @@ describe("Pool factory", () => {
         signer,
       ),
     ).to.not.reverted;
+
+    await expect(
+      poolFactory.createLinerPool(
+        [mintableToken.address],
+        [mintableToken.address],
+        ["1"],
+        toWei("10000000000"),
+        0,
+        (await time.latest()).toNumber(),
+        0,
+        signer,
+      ),
+    ).to.be.revertedWith("PoolFactory: APR must be less than 1e10");
 
     await expect(
       poolFactory.createLinerPool(
@@ -183,4 +198,5 @@ describe("Pool factory", () => {
       poolFactory.changeAllocationImpl(pool2Address)
     ).to.not.be.reverted;
   })
+  
 });

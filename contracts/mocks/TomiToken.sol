@@ -27,7 +27,7 @@ contract TomiToken is ERC20 {
         address community,
         address develop,
         address liquidity
-    ) public ERC20("TOMI", "TOMI") {
+    ) ERC20("TOMI", "TOMI") {
         require(community != address(0), "TomiToken: ZERO ADDRESS");
         require(develop != address(0), "TomiToken: ZERO ADDRESS");
         require(liquidity != address(0), "TomiToken: ZERO ADDRESS");

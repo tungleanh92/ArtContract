@@ -60,11 +60,6 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
     event LinearRewardsHarvested(address indexed account, uint256[] reward);
     event LinearPendingWithdraw(address indexed account, uint256[] amount);
     event LinearEmergencyWithdraw(address indexed account, uint256[] amount);
-    event LinearWithdrawAndRewardsHarvested(
-        address indexed account,
-        uint256[] amount,
-        uint256[] reward
-    );
 
     struct LinearStakingData {
         uint256[] balance;
@@ -232,7 +227,6 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
         );
 
         _linearHarvest(account);
-        uint256[] memory _rewards = new uint256[](stakingData.balance.length);
         require(
             linearRewardDistributor != address(0),
             "LinearStakingPool: invalid distributor"
@@ -244,23 +238,12 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
                 "LinearStakingPool: invalid amount"
             );
 
-            if (stakingData.reward[i] > 0) {
-                uint256 reward = stakingData.reward[i];
-                stakingData.reward[i] = 0;
-                linearRewardToken[i].safeTransferFrom(
-                    linearRewardDistributor,
-                    account,
-                    reward
-                );
-                _rewards[i] = reward;
-            }
-
             stakingData.balance[i] -= _amount[i];
             totalStaked[i] -= _amount[i];
             linearAcceptedToken[i].safeTransfer(account, _amount[i]);
         }
 
-        emit LinearWithdrawAndRewardsHarvested(account, _amount, _rewards);
+        emit LinearWithdraw(account, _amount);
     }
 
     /**
@@ -326,7 +309,6 @@ contract LinearPool is ReentrancyGuardUpgradeable, PausableUpgradeable {
             : 0;
 
         uint256 sumStaked = 0;
-        address[] memory _acceptToken = linearAcceptedTokenAddress;
         uint8[] memory _decimalsToken = decimalsToken;
         for (uint256 i = 0; i < stakingData.balance.length; i = unsafe_inc(i)) {
             sumStaked += ((1e18 / (10**_decimalsToken[i])) *

@@ -17,6 +17,8 @@ contract PoolFactory is IPoolFactory, AccessControl {
     LinerParams public linerParameters;
     AllocationParams public allocationParameters;
 
+    address public override signerAddress;
+
     function getLinerParameters() 
             external 
             view 
@@ -83,6 +85,7 @@ contract PoolFactory is IPoolFactory, AccessControl {
 
         linerImpl = _linerImpl;
         allocationImpl = _allocImpl;
+        signerAddress = msg.sender;
     }
 
     function changeLinerImpl(LinearPool _linerImpl) external {
@@ -111,6 +114,9 @@ contract PoolFactory is IPoolFactory, AccessControl {
         address _rewardDistributor
     ) external returns (address poolAddress) {
         require(hasRole(ADMIN, msg.sender), "PoolFactory: require ADMIN role");
+
+        uint256 clear_apr_decimal = _APR / 1e18;
+        require(0 <= clear_apr_decimal && clear_apr_decimal < 1e10, "PoolFactory: APR must be less than 1e10");
 
         poolAddress = _deployLiner(
             _stakeToken,
@@ -212,5 +218,11 @@ contract PoolFactory is IPoolFactory, AccessControl {
         AllocationPool(poolAddress).initialize();
 
         delete allocationParameters;
+    }
+
+    function changeSigner(address _newSigner) external {
+        require(hasRole(ADMIN, msg.sender), "PoolFactory: require ADMIN role");
+        signerAddress = _newSigner;
+        emit ChangeSigner(_newSigner);
     }
 }

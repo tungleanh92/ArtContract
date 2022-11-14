@@ -22,7 +22,7 @@ contract MintableToken is ERC20Upgradeable {
 
     event MinterChanged(address oldMinter, address newMinter);
 
-    constructor() public ERC20Upgradeable() {}
+    constructor() ERC20Upgradeable() {}
 
     function initialize(
         string memory _name,
@@ -74,10 +74,8 @@ contract MintableToken is ERC20Upgradeable {
     }
 
     function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override {
+        address from
+    ) internal view {
         require(blacklist[from] == 0, "BLACKLIST CANNOT TRANSFER");
     }
 

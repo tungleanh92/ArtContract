@@ -54,10 +54,8 @@ contract FixedToken is ERC20Upgradeable {
     }
 
     function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override {
+        address from
+    ) internal view {
         require(blacklist[from] == 0, "BLACKLIST CANNOT TRANSFER");
     }
 

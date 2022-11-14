@@ -4,10 +4,12 @@ pragma solidity 0.8.4;
 import "./interfaces/IPoolFactory.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/IAccessControlUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "hardhat/console.sol";
 
 contract AllocationPool is PausableUpgradeable {
     using SafeERC20 for IERC20;
@@ -117,7 +119,7 @@ contract AllocationPool is PausableUpgradeable {
                 _rewardLength == _stakedTokenRate.length,
             "AllocationPool: invalid token length"
         );
-        
+
         require(
             _rewardDistributor != address(0),
             "AllocationStakingPool: invalid reward distributor"
@@ -134,7 +136,7 @@ contract AllocationPool is PausableUpgradeable {
             totalStaked.push(0);
 
             uint8 _decimals = _getDecimals(_rewardToken[i]);
-            uint256 _formated = _tokenPerBlock * (10**(_decimals));
+            uint256 _formated = ((_tokenPerBlock * (10**(_decimals))) / 1e18);
             decimalTokenPerBlock.push(_formated);
         }
         tokenPerBlock = _tokenPerBlock;
@@ -182,7 +184,7 @@ contract AllocationPool is PausableUpgradeable {
      */
     function endPool() external isMod {
         require(!isEnd, "AllocationPool: Pool already ended");
-        updatePool();
+        updatePool(true);
         isEnd = true;
         endBlock = block.number;
         emit PoolEnded(address(this));
@@ -246,19 +248,20 @@ contract AllocationPool is PausableUpgradeable {
         uint256 caculatedBlock = isEnd == true ? endBlock : block.number;
 
         for (uint256 i = 0; i < lpSupply.length; i++) {
-
-            if (caculatedBlock > lastRewardBlock && lpSupply[i] != 0) {
-                uint256 multiplier = 
-                    getMultiplier(lastRewardBlock, caculatedBlock);
-                uint256 tokenReward = ((multiplier * decimalTokenPerBlock[i]) / sum) * _stakedTokenRate[i];
+            if (caculatedBlock >= lastRewardBlock && lpSupply[i] != 0) {
+                uint256 multiplier = getMultiplier(
+                    lastRewardBlock,
+                    caculatedBlock
+                );
+                uint256 tokenReward = ((multiplier * decimalTokenPerBlock[i]) /
+                    sum) * _stakedTokenRate[i];
 
                 _accTokenPerShare[i] =
                     _accTokenPerShare[i] +
                     ((tokenReward * 1e18) / lpSupply[i]);
                 rewards[i] =
                     pendingAmount[i] +
-                    (_accTokenPerShare[i] / 1e18) *
-                    amount[i] -
+                    ((_accTokenPerShare[i] * amount[i]) / 1e18) -
                     rewardDebt[i];
             }
         }
@@ -267,7 +270,7 @@ contract AllocationPool is PausableUpgradeable {
     /**
      * @notice Update reward variables of the given pool to be up-to-date.
      */
-    function updatePool() public whenNotPaused {
+    function updatePool(bool _isEnd) internal whenNotPaused {
         require(!isEnd, "AllocationPool: Pool ended");
         if (block.number <= lastRewardBlock) {
             return;
@@ -283,6 +286,9 @@ contract AllocationPool is PausableUpgradeable {
                 continue;
             }
             uint256 multiplier = getMultiplier(lastRewardBlock, block.number);
+            if (_isEnd == true) {
+                multiplier = getMultiplier(lastRewardBlock, block.number - 1);
+            }
             uint256 tokenReward = ((multiplier * decimalTokenPerBlock[i]) /
                 sum) * _stakedTokenRate[i];
             accTokenPerShare[i] =
@@ -296,10 +302,17 @@ contract AllocationPool is PausableUpgradeable {
      * @notice Deposit LP tokens to contract for token allocation.
      * @param _amounts amounts of token user stake into pool
      */
-    function deposit(uint256[] calldata _amounts) external whenNotPaused {
+    function deposit(uint256[] calldata _amounts, bytes calldata _signature) external whenNotPaused {
+        bytes32 _messageHash = getMessageHash(_amounts, _msgSender());
+        
         require(!isEnd, "AllocationPool: Pool ended");
+        require(
+                _verifySignature(_messageHash, _signature),
+                "AllocationPool: invalid signature"
+        );
+
         UserInfo storage user = userInfo[msg.sender];
-        updatePool();
+        updatePool(false);
         if (user.amount.length == 0) {
             user.amount = new uint256[](lpToken.length);
             user.rewardDebt = new uint256[](lpToken.length);
@@ -324,6 +337,7 @@ contract AllocationPool is PausableUpgradeable {
             totalStaked[i] += _amounts[i];
         }
         user.joinTime = block.timestamp;
+
         emit Deposit(msg.sender, _amounts);
     }
 
@@ -331,7 +345,15 @@ contract AllocationPool is PausableUpgradeable {
      * @notice Withdraw LP tokens from contract.
      * @param _amounts amounts of token user stake into pool
      */
-    function withdraw(uint256[] calldata _amounts) external whenNotPaused {
+    function withdraw(uint256[] calldata _amounts, bytes calldata _signature) external whenNotPaused {
+        bytes32 _messageHash = getMessageHash(_amounts, _msgSender());
+        
+        require(!isEnd, "AllocationPool: Pool ended");
+        require(
+                _verifySignature(_messageHash, _signature),
+                "AllocationPool: invalid signature"
+        );
+
         UserInfo storage user = userInfo[msg.sender];
 
         if (lockDuration > 0) {
@@ -341,7 +363,7 @@ contract AllocationPool is PausableUpgradeable {
             );
         }
         if (!isEnd) {
-            updatePool();
+            updatePool(false);
         }
         if (user.amount.length == 0) {
             user.amount = new uint256[](lpToken.length);
@@ -362,6 +384,7 @@ contract AllocationPool is PausableUpgradeable {
             user.rewardDebt[i] = (user.amount[i] * accTokenPerShare[i]) / 1e18;
             lpToken[i].safeTransfer(address(msg.sender), _amounts[i]);
         }
+
         emit Withdraw(msg.sender, _amounts);
     }
 
@@ -377,7 +400,7 @@ contract AllocationPool is PausableUpgradeable {
             );
         }
         if (!isEnd) {
-            updatePool();
+            updatePool(false);
         }
         if (user.amount.length == 0) {
             user.amount = new uint256[](lpToken.length);
@@ -393,7 +416,11 @@ contract AllocationPool is PausableUpgradeable {
             user.pendingAmount[i] = 0;
             user.rewardDebt[i] = (user.amount[i] * accTokenPerShare[i]) / 1e18;
             if (pending > 0)
-                rewardToken[i].safeTransferFrom(allocationRewardDistributor, msg.sender, pending);
+                rewardToken[i].safeTransferFrom(
+                    allocationRewardDistributor,
+                    msg.sender,
+                    pending
+                );
 
             _claims[i] = pending;
         }
@@ -441,5 +468,47 @@ contract AllocationPool is PausableUpgradeable {
         }
 
         return decimals;
+    }
+
+    // Using Openzeppelin ECDSA cryptography library
+
+    function getMessageHash(
+        uint256[] calldata _amounts,
+        address _user
+    ) public pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    _amounts,
+                    _user
+                )
+            );
+    }
+
+    // Verify signature function
+    function _verifySignature(
+        bytes32 _msgHash,
+        bytes calldata signature
+    ) public view returns (bool) {
+        bytes32 ethSignedMessageHash = getEthSignedMessageHash(_msgHash);
+
+        return getSignerAddress(ethSignedMessageHash, signature) == IPoolFactory(factory).signerAddress();
+    }
+
+
+    function getSignerAddress(bytes32 _messageHash, bytes memory _signature)
+        public
+        pure
+        returns (address)
+    {
+        return ECDSA.recover(_messageHash, _signature);
+    }
+
+    function getEthSignedMessageHash(bytes32 _messageHash)
+        public
+        pure
+        returns (bytes32)
+    {
+        return ECDSA.toEthSignedMessageHash(_messageHash);
     }
 }
