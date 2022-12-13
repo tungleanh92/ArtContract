@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "not things",
   "main": "dist/typechain/index.js",
-  "author": "Hai",
+  "author": "",
   "license": "MIT",
   "devDependencies": {
     "@codechecks/client": "0.1.11",
