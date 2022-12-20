@@ -12,32 +12,19 @@ contract ERC721Token is ERC721Enumerable, Ownable {
 
     // Mapping from token ID to owner address
     mapping(uint256 => address) private _owners;
-    mapping(address => bool) public whitelisted;
-    address public admin;
 
     constructor(string memory _name, string memory _symbol)
         ERC721(_name, _symbol)
-    {
-        setAdmin(msg.sender);
-    }
-
-    function setAdmin(address _admin) public onlyOwner {
-        admin = _admin;
-    }
-
-    modifier onlyAdmin() {
-        require(msg.sender == admin, "No permission");
-        _;
-    }
+    {}
 
     function mint(address _owner, uint256 _mintAmount)
         external
-        onlyAdmin
+        onlyOwner
         returns (uint256)
     {
         uint256 supply = totalSupply();
 
-        for (uint256 i = 1; i <= _mintAmount; i++) {
+        for (uint256 i = 1; i <= _mintAmount; ++i) {
             _owners[supply + i] = _owner;
             _safeMint(_owner, supply + i);
         }
@@ -54,7 +41,7 @@ contract ERC721Token is ERC721Enumerable, Ownable {
     function burn(uint256[] memory _tokenIds, address _owner)
         external
         virtual
-        onlyAdmin
+        onlyOwner
     {
         for (uint256 i = 0; i < _tokenIds.length; ++i) {
             uint256 _tokenId = _tokenIds[i];
@@ -67,4 +54,11 @@ contract ERC721Token is ERC721Enumerable, Ownable {
     function _baseURI() internal view virtual override returns (string memory) {
         return "";
     }
+
+    /* 
+    Dynamic NFT:
+    - Attributes in metadata:
+        + 
+    - Paper relate to nft:
+     */
 }
